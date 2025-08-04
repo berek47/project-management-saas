@@ -112,3 +112,61 @@ export const postUser = async (req: AuthenticatedRequest, res: Response) => {
     sendError(res, error);
   }
 };
+
+export const updateUserProfile = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+
+    const username = requireString(req.body.username, "username", { optional: true });
+    const email = requireString(req.body.email, "email", { optional: true });
+    const profilePictureUrl = requireString(req.body.profilePictureUrl, "profilePictureUrl", { optional: true });
+
+    const updated = await prisma.user.update({
+      where: { userId: currentUser.userId },
+      data: {
+        ...(username && { username }),
+        ...(email !== undefined && { email }),
+        ...(profilePictureUrl !== undefined && { profilePictureUrl }),
+      },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+export const getMyProfile = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+
+    const user = await prisma.user.findUnique({
+      where: { userId: currentUser.userId },
+      include: {
+        team: true,
+        _count: {
+          select: {
+            authoredTasks: true,
+            assignedTasks: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.json(user);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
