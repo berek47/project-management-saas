@@ -324,6 +324,72 @@ export const createTaskComment = async (
   }
 };
 
+export const deleteTask = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const taskId = requireNumber(req.params.taskId, "taskId");
+
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { authorUserId: true, projectId: true, title: true },
+    });
+
+    if (!existingTask) {
+      res.status(404).json({ message: "Task not found" });
+      return;
+    }
+
+    await ensureProjectAccess(currentUser, existingTask.projectId);
+
+    if (existingTask.authorUserId !== currentUser.userId && !currentUser.teamId) {
+      throw new HttpError(403, "Only the task author can delete this task");
+    }
+
+    await prisma.comment.deleteMany({ where: { taskId } });
+    await prisma.taskAssignment.deleteMany({ where: { taskId } });
+    await prisma.attachment.deleteMany({ where: { taskId } });
+    await prisma.task.delete({ where: { id: taskId } });
+
+    await logActivity(currentUser.userId, "task_deleted", {
+      projectId: existingTask.projectId,
+      details: `Deleted task "${existingTask.title}"`,
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+export const getOverdueTasks = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+
+    const tasks = await prisma.task.findMany({
+      where: {
+        assignedUserId: currentUser.userId,
+        dueDate: { lt: new Date() },
+        status: { not: "Completed" },
+      },
+      include: {
+        author: true,
+        assignee: true,
+      },
+      orderBy: { dueDate: "asc" },
+    });
+
+    res.json(tasks);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const getUserTasks = async (
   req: AuthenticatedRequest,
   res: Response,
