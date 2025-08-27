@@ -39,6 +39,7 @@ model User {
   conversationParticipants ConversationParticipant[]
   sentMessages    Message[]        @relation("MessageSender")
   activityLogs    ActivityLog[]
+  notifications   Notification[]
 }
 
 model Team {
@@ -169,6 +170,22 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([senderUserId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  taskId    Int?
+  projectId Int?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model ActivityLog {
