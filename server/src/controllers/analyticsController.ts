@@ -78,7 +78,8 @@ export const getProjectAnalytics = async (
       byPriority,
       totalPoints,
       completedPoints,
-      completionRate: tasks.length > 0 ? Math.round((byStatus["Completed"] ?? 0) / tasks.length * 100) : 0,
+      completionRate: tasks.length > 0 ? Math.round(((byStatus["Completed"] ?? 0) / tasks.length) * 100) : 0,
+      pointsCompletionRate: totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0,
       overdueTasks,
       tasksByAssignee: Object.values(assigneeMap).sort((a, b) => b.taskCount - a.taskCount),
     });
