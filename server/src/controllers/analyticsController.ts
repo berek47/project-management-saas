@@ -88,6 +88,77 @@ export const getProjectAnalytics = async (
   }
 };
 
+export const getTeamAnalytics = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const teamId = requireNumber(req.params.teamId, "teamId");
+
+    if (currentUser.teamId !== teamId) {
+      throw new HttpError(403, "You are not a member of this team");
+    }
+
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const teamMembers = await prisma.user.findMany({
+      where: { teamId },
+      select: { userId: true, username: true },
+    });
+
+    const memberIds = teamMembers.map((m) => m.userId);
+
+    const [totalTasks, completedTasks, overdueTasks, completedThisWeek] =
+      await Promise.all([
+        prisma.task.count({ where: { assignedUserId: { in: memberIds } } }),
+        prisma.task.count({
+          where: { assignedUserId: { in: memberIds }, status: "Completed" },
+        }),
+        prisma.task.count({
+          where: {
+            assignedUserId: { in: memberIds },
+            dueDate: { lt: now },
+            status: { not: "Completed" },
+          },
+        }),
+        prisma.task.count({
+          where: {
+            assignedUserId: { in: memberIds },
+            status: "Completed",
+            dueDate: { gte: sevenDaysAgo },
+          },
+        }),
+      ]);
+
+    const perMember = await Promise.all(
+      teamMembers.map(async (member) => {
+        const [assigned, completed] = await Promise.all([
+          prisma.task.count({ where: { assignedUserId: member.userId } }),
+          prisma.task.count({
+            where: { assignedUserId: member.userId, status: "Completed" },
+          }),
+        ]);
+        return { ...member, assigned, completed };
+      }),
+    );
+
+    res.json({
+      memberCount: teamMembers.length,
+      totalTasks,
+      completedTasks,
+      overdueTasks,
+      completedThisWeek,
+      completionRate:
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+      perMember,
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const getWorkspaceAnalytics = async (
   req: AuthenticatedRequest,
   res: Response,
