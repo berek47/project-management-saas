@@ -1,7 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { env, isPreviewAuthMode } from "../config/env";
 import { sendError } from "./http";
-import { syncPostgresSerialSequences } from "./postgresSequences";
+import {
+  getNextProjectId,
+  getNextProjectTeamId,
+  getNextTaskId,
+  getNextTeamId,
+  getNextUserId,
+} from "./postgresSequences";
 import { prisma } from "./prisma";
 
 type AuthPayload = {
@@ -23,16 +29,12 @@ const createStarterWorkspaceForUser = async (user: AuthenticatedUser) => {
     return user;
   }
 
-  await syncPostgresSerialSequences(prisma, [
-    { table: "Team", column: "id" },
-    { table: "Project", column: "id" },
-    { table: "ProjectTeam", column: "id" },
-    { table: "Task", column: "id" },
-  ]);
-
   const created = await prisma.$transaction(async (tx) => {
+    const teamId = await getNextTeamId(tx);
+
     const team = await tx.team.create({
       data: {
+        id: teamId,
         teamName: `${user.username}'s Team`,
         productOwnerUserId: user.userId,
         projectManagerUserId: user.userId,
@@ -56,8 +58,11 @@ const createStarterWorkspaceForUser = async (user: AuthenticatedUser) => {
     const projectEnd = new Date(today);
     projectEnd.setDate(projectEnd.getDate() + 30);
 
+    const starterProjectId = await getNextProjectId(tx);
+
     const starterProject = await tx.project.create({
       data: {
+        id: starterProjectId,
         name: `${user.username}'s Launchpad`,
         description:
           "A starter workspace project created automatically for your first session.",
@@ -67,8 +72,11 @@ const createStarterWorkspaceForUser = async (user: AuthenticatedUser) => {
       },
     });
 
+    const projectTeamId = await getNextProjectTeamId(tx);
+
     await tx.projectTeam.create({
       data: {
+        id: projectTeamId,
         projectId: starterProject.id,
         teamId: team.id,
       },
@@ -105,8 +113,11 @@ const createStarterWorkspaceForUser = async (user: AuthenticatedUser) => {
     ];
 
     for (const task of starterTasks) {
+      const taskId = await getNextTaskId(tx);
+
       await tx.task.create({
         data: {
+          id: taskId,
           ...task,
           projectId: starterProject.id,
           authorUserId: user.userId,
@@ -161,9 +172,7 @@ const loadCurrentUser = async (payload: AuthPayload) => {
     payload.email?.split("@")[0] ||
     `user-${payload.sub.slice(0, 8)}`;
 
-  await syncPostgresSerialSequences(prisma, [
-    { table: "User", column: "userId" },
-  ]);
+  const nextUserId = await getNextUserId(prisma);
 
   const user = await prisma.user.upsert({
     where: { authProviderId: payload.sub },
@@ -172,6 +181,7 @@ const loadCurrentUser = async (payload: AuthPayload) => {
       username: fallbackUsername,
     },
     create: {
+      userId: nextUserId,
       authProviderId: payload.sub,
       email: payload.email,
       username: fallbackUsername,

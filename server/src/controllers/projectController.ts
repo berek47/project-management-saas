@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { getAccessibleProjectIds } from "../lib/access";
 import { parseOptionalDate, requireNumber, requireString, sendError, HttpError } from "../lib/http";
-import { syncPostgresSerialSequences } from "../lib/postgresSequences";
+import { getNextProjectId, getNextProjectTeamId } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
 import { AuthenticatedRequest } from "../lib/auth";
 
@@ -71,13 +71,11 @@ export const createProject = async (
       optional: true,
     });
 
-    await syncPostgresSerialSequences(prisma, [
-      { table: "Project", column: "id" },
-      { table: "ProjectTeam", column: "id" },
-    ]);
+    const nextProjectId = await getNextProjectId(prisma);
 
     const newProject = await prisma.project.create({
       data: {
+        id: nextProjectId,
         name,
         description,
         startDate: parseOptionalDate(req.body.startDate, "startDate"),
@@ -87,8 +85,11 @@ export const createProject = async (
     });
 
     if (currentUser.teamId) {
+      const nextProjectTeamId = await getNextProjectTeamId(prisma);
+
       await prisma.projectTeam.create({
         data: {
+          id: nextProjectTeamId,
           projectId: newProject.id,
           teamId: currentUser.teamId,
         },

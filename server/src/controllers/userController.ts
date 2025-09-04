@@ -2,7 +2,7 @@ import { Response } from "express";
 import { AuthenticatedRequest } from "../lib/auth";
 import { ensureSameTeamOrSelf } from "../lib/access";
 import { HttpError, requireNumber, requireString, sendError } from "../lib/http";
-import { syncPostgresSerialSequences } from "../lib/postgresSequences";
+import { getNextUserId } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
@@ -88,9 +88,7 @@ export const postUser = async (req: AuthenticatedRequest, res: Response) => {
       throw new HttpError(403, "You can only save your own workspace profile");
     }
 
-    await syncPostgresSerialSequences(prisma, [
-      { table: "User", column: "userId" },
-    ]);
+    const nextUserId = await getNextUserId(prisma);
 
     const user = await prisma.user.upsert({
       where: { authProviderId },
@@ -101,6 +99,7 @@ export const postUser = async (req: AuthenticatedRequest, res: Response) => {
         teamId,
       },
       create: {
+        userId: nextUserId,
         username,
         authProviderId,
         email,
