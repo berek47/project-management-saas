@@ -14,6 +14,7 @@ import conversationRoutes from "./routes/conversationRoutes";
 import activityLogRoutes from "./routes/activityLogRoutes";
 import exportRoutes from "./routes/exportRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
 
 export const app = express();
 
@@ -53,6 +54,7 @@ app.use("/conversations", conversationRoutes);
 app.use("/activity", activityLogRoutes);
 app.use("/export", exportRoutes);
 app.use("/notifications", notificationRoutes);
+app.use("/analytics", analyticsRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });
