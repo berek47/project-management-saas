@@ -106,3 +106,44 @@ export const getUnreadCount = async (
     sendError(res, error);
   }
 };
+
+export const deleteNotification = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const notificationId = requireNumber(req.params.id, "id");
+
+    const notification = await prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) throw new HttpError(404, "Notification not found");
+    if (notification.userId !== currentUser.userId) {
+      throw new HttpError(403, "Not your notification");
+    }
+
+    await prisma.notification.delete({ where: { id: notificationId } });
+    res.status(204).send();
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+export const clearAllNotifications = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+
+    await prisma.notification.deleteMany({
+      where: { userId: currentUser.userId },
+    });
+
+    res.json({ message: "All notifications cleared" });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
