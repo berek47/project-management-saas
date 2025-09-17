@@ -36,30 +36,40 @@ export const getTasks = async (
       await ensureProjectAccess(currentUser, projectId);
     }
 
-    const tasks = await prisma.task.findMany({
-      where: projectId
-        ? { projectId }
-        : accessibleProjectIds.length
-          ? { projectId: { in: accessibleProjectIds } }
-          : {
-              OR: [
-                { authorUserId: currentUser.userId },
-                { assignedUserId: currentUser.userId },
-              ],
-            },
-      include: {
-        author: true,
-        assignee: true,
-        comments: {
-          include: {
-            user: true,
+    const limit = requireNumber(req.query.limit, "limit", { optional: true });
+    const offset = requireNumber(req.query.offset, "offset", { optional: true });
+
+    const where = projectId
+      ? { projectId }
+      : accessibleProjectIds.length
+        ? { projectId: { in: accessibleProjectIds } }
+        : {
+            OR: [
+              { authorUserId: currentUser.userId },
+              { assignedUserId: currentUser.userId },
+            ],
+          };
+
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        include: {
+          author: true,
+          assignee: true,
+          comments: {
+            include: { user: true },
+            orderBy: { id: "asc" },
           },
-          orderBy: { id: "asc" },
+          attachments: true,
         },
-        attachments: true,
-      },
-      orderBy: { id: "asc" },
-    });
+        orderBy: { id: "asc" },
+        ...(limit !== undefined && { take: limit }),
+        ...(offset !== undefined && { skip: offset }),
+      }),
+      prisma.task.count({ where }),
+    ]);
+
+    res.setHeader("X-Total-Count", String(total));
     res.json(tasks);
   } catch (error) {
     sendError(res, error);
