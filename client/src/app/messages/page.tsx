@@ -64,10 +64,11 @@ const MessagesPage = () => {
       (conversation) => conversation.id === selectedConversationId,
     ) || null;
 
-  const { data: messages, isFetching: isMessagesLoading } =
+  const { data: messages, isLoading: isMessagesLoading } =
     useGetConversationMessagesQuery(selectedConversationId as number, {
       skip: !selectedConversationId,
     });
+  const hasMessages = Array.isArray(messages) && messages.length > 0;
 
   React.useEffect(() => {
     if (selectedConversationId) {
@@ -290,13 +291,13 @@ const MessagesPage = () => {
               </div>
 
               <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
-                {isMessagesLoading ? (
+                {isMessagesLoading && !hasMessages ? (
                   <StatusPanel
                     title="Loading conversation"
                     description="Pulling the latest messages for this channel."
                     tone="loading"
                   />
-                ) : messages?.length ? (
+                ) : hasMessages ? (
                   messages.map((message) => {
                     const isOwnMessage = message.senderUserId === currentUserId;
                     return (

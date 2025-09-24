@@ -471,10 +471,110 @@ export const api = createApi({
         method: "POST",
         body: { body },
       }),
-      invalidatesTags: (result, error, { conversationId }) => [
-        "Conversations",
-        { type: "Messages", id: conversationId },
-      ],
+      async onQueryStarted(
+        { body, conversationId },
+        { dispatch, getState, queryFulfilled },
+      ) {
+        const state = getState() as {
+          api: {
+            queries: Record<
+              string,
+              {
+                endpointName?: string;
+                originalArgs?: unknown;
+                data?: unknown;
+              }
+            >;
+          };
+        };
+
+        const authQuery = Object.values(state.api.queries).find(
+          (query) => query.endpointName === "getAuthUser",
+        );
+        const authData = authQuery?.data as AuthUserState | undefined;
+        const currentUser = authData?.userDetails;
+        const now = new Date().toISOString();
+
+        const messagePatch = dispatch(
+          api.util.updateQueryData(
+            "getConversationMessages",
+            conversationId,
+            (draft) => {
+              if (!currentUser?.userId) {
+                return;
+              }
+
+              draft.push({
+                id: -Date.now(),
+                conversationId,
+                senderUserId: currentUser.userId,
+                body,
+                createdAt: now,
+                sender: currentUser,
+              });
+            },
+          ),
+        );
+
+        const conversationPatch = dispatch(
+          api.util.updateQueryData("getConversations", undefined, (draft) => {
+            const conversation = draft.find((item) => item.id === conversationId);
+            if (!conversation || !currentUser) {
+              return;
+            }
+
+            conversation.updatedAt = now;
+            conversation.lastReadAt = now;
+            conversation.lastMessage = {
+              id: -Date.now(),
+              body,
+              createdAt: now,
+              sender: currentUser,
+            };
+          }),
+        );
+
+        try {
+          const { data } = await queryFulfilled;
+
+          dispatch(
+            api.util.updateQueryData(
+              "getConversationMessages",
+              conversationId,
+              (draft) => {
+                const pendingIndex = draft.findIndex((message) => message.id < 0);
+                if (pendingIndex !== -1) {
+                  draft[pendingIndex] = data;
+                } else {
+                  draft.push(data);
+                }
+              },
+            ),
+          );
+
+          dispatch(
+            api.util.updateQueryData("getConversations", undefined, (draft) => {
+              const conversation = draft.find((item) => item.id === conversationId);
+              if (!conversation) {
+                return;
+              }
+
+              conversation.updatedAt = data.createdAt;
+              conversation.lastReadAt = data.createdAt;
+              conversation.lastMessage = {
+                id: data.id,
+                body: data.body,
+                createdAt: data.createdAt,
+                sender: data.sender,
+              };
+            }),
+          );
+        } catch {
+          messagePatch.undo();
+          conversationPatch.undo();
+        }
+      },
+      invalidatesTags: ["Conversations"],
     }),
     markConversationRead: build.mutation<
       { message: string },
