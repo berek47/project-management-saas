@@ -204,6 +204,82 @@ export const updateTaskStatus = async (
   }
 };
 
+export const updateTask = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const taskId = requireNumber(req.params.taskId, "taskId");
+
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { authorUserId: true, assignedUserId: true, projectId: true, title: true },
+    });
+
+    if (!existingTask) {
+      res.status(404).json({ message: "Task not found" });
+      return;
+    }
+
+    await ensureProjectAccess(currentUser, existingTask.projectId);
+
+    const isActor =
+      existingTask.authorUserId === currentUser.userId ||
+      existingTask.assignedUserId === currentUser.userId;
+
+    if (!isActor && !currentUser.teamId) {
+      throw new HttpError(403, "You do not have access to update this task");
+    }
+
+    const title = requireString(req.body.title, "title", { optional: true });
+    const description = requireString(req.body.description, "description", { optional: true });
+    const priority = requireString(req.body.priority, "priority", { optional: true });
+    const tags = requireString(req.body.tags, "tags", { optional: true });
+    const points = requireNumber(req.body.points, "points", { optional: true });
+    const assignedUserId = requireNumber(req.body.assignedUserId, "assignedUserId", { optional: true });
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(priority !== undefined && { priority }),
+        ...(tags !== undefined && { tags }),
+        ...(points !== undefined && { points }),
+        ...(assignedUserId !== undefined && { assignedUserId }),
+        ...(req.body.dueDate !== undefined && {
+          dueDate: parseOptionalDate(req.body.dueDate, "dueDate"),
+        }),
+      },
+      include: { author: true, assignee: true },
+    });
+
+    await logActivity(currentUser.userId, "task_updated", {
+      taskId,
+      projectId: existingTask.projectId,
+      details: `Updated task "${existingTask.title}"`,
+    });
+
+    if (
+      assignedUserId &&
+      assignedUserId !== existingTask.assignedUserId &&
+      assignedUserId !== currentUser.userId
+    ) {
+      await createNotification(
+        assignedUserId,
+        "task_assigned",
+        `You were assigned to task "${updatedTask.title}"`,
+        { taskId, projectId: existingTask.projectId },
+      );
+    }
+
+    res.json(updatedTask);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const createTaskComment = async (
   req: AuthenticatedRequest,
   res: Response,
