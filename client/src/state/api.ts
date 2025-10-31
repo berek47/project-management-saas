@@ -126,6 +126,37 @@ export interface WorkspaceAnalytics {
   overdueCount: number;
 }
 
+export interface TeamMemberAnalytics {
+  userId: number;
+  username: string;
+  assigned: number;
+  completed: number;
+}
+
+export interface TeamAnalytics {
+  memberCount: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  completedThisWeek: number;
+  completionRate: number;
+  perMember: TeamMemberAnalytics[];
+}
+
+export interface ActivitySummary {
+  totalActions: number;
+  byAction: Record<string, number>;
+  byDay: Record<string, number>;
+  periodDays: number;
+}
+
+export interface ProjectMember {
+  userId: number;
+  username: string;
+  email?: string;
+  profilePictureUrl?: string;
+}
+
 export type ConversationType = "DIRECT" | "TEAM";
 
 export interface ConversationParticipant {
@@ -953,6 +984,35 @@ export const api = createApi({
       query: () => "analytics/workspace",
       providesTags: ["Tasks"],
     }),
+    getTeamAnalytics: build.query<TeamAnalytics, number>({
+      query: (teamId) => `analytics/teams/${teamId}`,
+      providesTags: ["Tasks"],
+    }),
+    getActivitySummary: build.query<ActivitySummary, void>({
+      query: () => "activity/me/summary",
+    }),
+    getProjectMembers: build.query<ProjectMember[], number>({
+      query: (projectId) => `projects/${projectId}/members`,
+      providesTags: (result, error, projectId) => [{ type: "Projects", id: projectId }],
+    }),
+    bulkUpdateTaskStatus: build.mutation<
+      { updated: number; status: string },
+      { taskIds: number[]; status: string }
+    >({
+      query: (body) => ({
+        url: "tasks/bulk-status",
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
+    duplicateTask: build.mutation<Task, number>({
+      query: (taskId) => ({
+        url: `tasks/${taskId}/duplicate`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
   }),
 });
 
@@ -990,4 +1050,9 @@ export const {
   useGetTaskActivityQuery,
   useGetProjectAnalyticsQuery,
   useGetWorkspaceAnalyticsQuery,
+  useGetTeamAnalyticsQuery,
+  useGetActivitySummaryQuery,
+  useGetProjectMembersQuery,
+  useBulkUpdateTaskStatusMutation,
+  useDuplicateTaskMutation,
 } = api;
