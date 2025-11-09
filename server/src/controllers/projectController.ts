@@ -4,6 +4,7 @@ import { parseOptionalDate, requireNumber, requireString, sendError, HttpError }
 import { getNextProjectId, getNextProjectTeamId } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
 import { AuthenticatedRequest } from "../lib/auth";
+import { logActivity } from "./activityLogController";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
   if (!req.currentUser) {
@@ -96,6 +97,11 @@ export const createProject = async (
       });
     }
 
+    await logActivity(currentUser.userId, "project_created", {
+      projectId: newProject.id,
+      details: `Created project "${name}"`,
+    });
+
     res.status(201).json(newProject);
   } catch (error) {
     sendError(res, error);
@@ -142,6 +148,11 @@ export const updateProject = async (
           ? { endDate: parseOptionalDate(req.body.endDate, "endDate") }
           : {}),
       },
+    });
+
+    await logActivity(currentUser.userId, "project_updated", {
+      projectId,
+      details: `Updated project "${updatedProject.name}"`,
     });
 
     res.json(updatedProject);
