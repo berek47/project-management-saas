@@ -400,6 +400,54 @@ export const getOverdueTasks = async (
   }
 };
 
+export const bulkUpdateTaskStatus = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const status = requireString(req.body.status, "status");
+    const taskIds: unknown = req.body.taskIds;
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new HttpError(400, "taskIds must be a non-empty array");
+    }
+
+    const ids = taskIds.map((id) => requireNumber(id, "taskId"));
+
+    const tasks = await prisma.task.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, projectId: true },
+    });
+
+    if (tasks.length !== ids.length) {
+      throw new HttpError(404, "One or more tasks not found");
+    }
+
+    const projectIds = [...new Set(tasks.map((t) => t.projectId))];
+    for (const pid of projectIds) {
+      await ensureProjectAccess(currentUser, pid);
+    }
+
+    await prisma.task.updateMany({
+      where: { id: { in: ids } },
+      data: { status },
+    });
+
+    for (const task of tasks) {
+      await logActivity(currentUser.userId, "task_status_changed", {
+        taskId: task.id,
+        projectId: task.projectId,
+        details: `Bulk status change to "${status}"`,
+      });
+    }
+
+    res.json({ updated: ids.length, status });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const getUserTasks = async (
   req: AuthenticatedRequest,
   res: Response,
