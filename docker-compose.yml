@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: project-management-saas-db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: project_management_saas
+      POSTGRES_USER: bereket
+      POSTGRES_PASSWORD: bereket123
+    volumes:
+      - project_management_saas_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bereket -d project_management_saas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  project_management_saas_postgres:
