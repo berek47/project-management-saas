@@ -38,6 +38,7 @@ model User {
   createdConversations Conversation[] @relation("ConversationCreator")
   conversationParticipants ConversationParticipant[]
   sentMessages    Message[]        @relation("MessageSender")
+  activityLogs    ActivityLog[]
 }
 
 model Team {
@@ -60,6 +61,7 @@ model Project {
   tasks           Task[]
   projectTeams    ProjectTeam[]
   createdBy       User?         @relation("ProjectCreator", fields: [createdByUserId], references: [userId])
+  activityLogs    ActivityLog[]
 }
 
 model ProjectTeam {
@@ -90,6 +92,7 @@ model Task {
   taskAssignments TaskAssignment[]
   attachments     Attachment[]
   comments        Comment[]
+  activityLogs    ActivityLog[]
 }
 
 model TaskAssignment {
@@ -166,4 +169,23 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([senderUserId])
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  taskId    Int?
+  projectId Int?
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([projectId])
+  @@index([createdAt])
 }
