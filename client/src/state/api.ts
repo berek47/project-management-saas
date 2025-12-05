@@ -113,6 +113,19 @@ export interface ConversationSummary {
   createdAt: string;
 }
 
+type ApiStateShape = {
+  api: {
+    queries: Record<
+      string,
+      {
+        endpointName?: string;
+        originalArgs?: unknown;
+        data?: unknown;
+      }
+    >;
+  };
+};
+
 export interface AuthUserState {
   user: {
     username: string;
@@ -178,6 +191,14 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   }
 
   return fallbackMessage;
+};
+
+const getCurrentUserFromApiState = (state: ApiStateShape) => {
+  const authQuery = Object.values(state.api.queries).find(
+    (query) => query.endpointName === "getAuthUser",
+  );
+  const authData = authQuery?.data as AuthUserState | undefined;
+  return authData?.userDetails;
 };
 
 export const api = createApi({
@@ -475,24 +496,8 @@ export const api = createApi({
         { body, conversationId },
         { dispatch, getState, queryFulfilled },
       ) {
-        const state = getState() as {
-          api: {
-            queries: Record<
-              string,
-              {
-                endpointName?: string;
-                originalArgs?: unknown;
-                data?: unknown;
-              }
-            >;
-          };
-        };
-
-        const authQuery = Object.values(state.api.queries).find(
-          (query) => query.endpointName === "getAuthUser",
-        );
-        const authData = authQuery?.data as AuthUserState | undefined;
-        const currentUser = authData?.userDetails;
+        const state = getState() as ApiStateShape;
+        const currentUser = getCurrentUserFromApiState(state);
         const now = new Date().toISOString();
 
         const messagePatch = dispatch(
@@ -576,6 +581,179 @@ export const api = createApi({
       },
       invalidatesTags: ["Conversations"],
     }),
+    updateMessage: build.mutation<
+      ChatMessage,
+      { conversationId: number; messageId: number; body: string }
+    >({
+      query: ({ body, conversationId, messageId }) => ({
+        url: `conversations/${conversationId}/messages/${messageId}`,
+        method: "PATCH",
+        body: { body },
+      }),
+      async onQueryStarted(
+        { body, conversationId, messageId },
+        { dispatch, queryFulfilled },
+      ) {
+        const now = new Date().toISOString();
+
+        const messagePatch = dispatch(
+          api.util.updateQueryData(
+            "getConversationMessages",
+            conversationId,
+            (draft) => {
+              const message = draft.find((item) => item.id === messageId);
+              if (message) {
+                message.body = body;
+              }
+            },
+          ),
+        );
+
+        const conversationPatch = dispatch(
+          api.util.updateQueryData("getConversations", undefined, (draft) => {
+            const conversation = draft.find((item) => item.id === conversationId);
+            if (!conversation) {
+              return;
+            }
+
+            if (conversation.lastMessage?.id === messageId) {
+              conversation.lastMessage.body = body;
+              conversation.lastMessage.createdAt = now;
+            }
+            conversation.updatedAt = now;
+          }),
+        );
+
+        try {
+          const { data } = await queryFulfilled;
+
+          dispatch(
+            api.util.updateQueryData(
+              "getConversationMessages",
+              conversationId,
+              (draft) => {
+                const message = draft.find((item) => item.id === messageId);
+                if (message) {
+                  message.body = data.body;
+                }
+              },
+            ),
+          );
+
+          dispatch(
+            api.util.updateQueryData("getConversations", undefined, (draft) => {
+              const conversation = draft.find((item) => item.id === conversationId);
+              if (!conversation) {
+                return;
+              }
+
+              if (conversation.lastMessage?.id === messageId) {
+                conversation.lastMessage.body = data.body;
+                conversation.lastMessage.createdAt = data.createdAt;
+              }
+              conversation.updatedAt = data.createdAt;
+            }),
+          );
+        } catch {
+          messagePatch.undo();
+          conversationPatch.undo();
+        }
+      },
+      invalidatesTags: ["Conversations"],
+    }),
+    deleteMessage: build.mutation<
+      { message: string },
+      { conversationId: number; messageId: number }
+    >({
+      query: ({ conversationId, messageId }) => ({
+        url: `conversations/${conversationId}/messages/${messageId}`,
+        method: "DELETE",
+      }),
+      async onQueryStarted(
+        { conversationId, messageId },
+        { dispatch, queryFulfilled },
+      ) {
+        let deletedBody = "";
+        let deletedCreatedAt = "";
+        let deletedSender: User | undefined;
+        let replacementLastMessage:
+          | {
+              id: number;
+              body: string;
+              createdAt: string;
+              sender: User;
+            }
+          | null
+          | undefined;
+
+        const messagePatch = dispatch(
+          api.util.updateQueryData(
+            "getConversationMessages",
+            conversationId,
+            (draft) => {
+              const index = draft.findIndex((item) => item.id === messageId);
+              if (index !== -1) {
+                deletedBody = draft[index].body;
+                deletedCreatedAt = draft[index].createdAt;
+                deletedSender = draft[index].sender;
+                draft.splice(index, 1);
+                const fallback = draft.at(-1);
+                replacementLastMessage = fallback
+                  ? {
+                      id: fallback.id,
+                      body: fallback.body,
+                      createdAt: fallback.createdAt,
+                      sender: fallback.sender,
+                    }
+                  : null;
+              }
+            },
+          ),
+        );
+
+        const conversationPatch = dispatch(
+          api.util.updateQueryData("getConversations", undefined, (draft) => {
+            const conversation = draft.find((item) => item.id === conversationId);
+            if (!conversation) {
+              return;
+            }
+
+            if (conversation.lastMessage?.id === messageId) {
+              conversation.lastMessage = replacementLastMessage ?? null;
+            }
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          messagePatch.undo();
+          conversationPatch.undo();
+
+          if (deletedBody && deletedSender?.userId) {
+            const senderUserId = deletedSender.userId;
+            const sender = deletedSender;
+            dispatch(
+              api.util.updateQueryData(
+                "getConversationMessages",
+                conversationId,
+                (draft) => {
+                  draft.push({
+                    id: messageId,
+                    conversationId,
+                    senderUserId,
+                    body: deletedBody,
+                    createdAt: deletedCreatedAt,
+                    sender,
+                  });
+                },
+              ),
+            );
+          }
+        }
+      },
+      invalidatesTags: ["Conversations"],
+    }),
     markConversationRead: build.mutation<
       { message: string },
       { conversationId: number }
@@ -611,5 +789,7 @@ export const {
   useCreateTeamConversationMutation,
   useGetConversationMessagesQuery,
   useCreateMessageMutation,
+  useUpdateMessageMutation,
+  useDeleteMessageMutation,
   useMarkConversationReadMutation,
 } = api;
