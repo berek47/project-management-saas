@@ -161,6 +161,48 @@ export const updateProject = async (
   }
 };
 
+export const getProjectMembers = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const projectId = requireNumber(req.params.projectId, "projectId");
+    const accessibleProjectIds = await getAccessibleProjectIds(currentUser);
+
+    if (!accessibleProjectIds.includes(projectId)) {
+      throw new HttpError(403, "You do not have access to this project");
+    }
+
+    const projectTeams = await prisma.projectTeam.findMany({
+      where: { projectId },
+      include: {
+        team: {
+          include: {
+            user: {
+              select: {
+                userId: true,
+                username: true,
+                email: true,
+                profilePictureUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const members = projectTeams.flatMap((pt) => pt.team.user);
+    const unique = Array.from(
+      new Map(members.map((m) => [m.userId, m])).values(),
+    );
+
+    res.json(unique);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const deleteProject = async (
   req: AuthenticatedRequest,
   res: Response,
