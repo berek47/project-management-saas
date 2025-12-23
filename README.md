@@ -110,6 +110,33 @@ npm run build
 npx tsc --noEmit
 ```
 
+## Testing
+
+The repository includes Playwright coverage for three layers:
+
+- `unit` for pure client helpers
+- `integration` for the Express app and middleware stack
+- `e2e` for the Next.js workspace flow against a local mock API
+
+From the repo root:
+
+```bash
+npm run test:unit
+npm run test:integration
+npm run test:e2e
+```
+
+Or run the full suite:
+
+```bash
+npm test
+```
+
+Notes:
+
+- `npm run test:e2e` starts a local mock API on `http://127.0.0.1:4010` and a dedicated Next.js dev server on `http://127.0.0.1:3001`.
+- The Next.js app is launched in preview auth mode during E2E runs, so no Supabase session is required.
+
 ## Deployment
 
 Production env templates are included:

@@ -1,0 +1,13 @@
+{
+  "name": "project-management-saas",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:unit": "npx playwright test --project=unit",
+    "test:integration": "npx playwright test --project=integration",
+    "test:e2e": "node tests/e2e/run-e2e.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  }
+}

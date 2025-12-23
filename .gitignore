@@ -2,6 +2,10 @@
 
 .vscode/
 .idea/
+.env
+.env.local
+.env*.local
+node_modules/
 
 *.log
 npm-debug.log*
@@ -27,3 +31,7 @@ server/.env*.local
 server/coverage/
 server/.turbo/
 server/*.tsbuildinfo
+
+playwright-report/
+test-results/
+blob-report/
