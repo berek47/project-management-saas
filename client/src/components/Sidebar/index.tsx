@@ -13,6 +13,7 @@ import {
   AlertCircle,
   AlertOctagon,
   AlertTriangle,
+  BarChart2,
   Bell,
   Briefcase,
   ChevronDown,
@@ -113,6 +114,7 @@ const Sidebar = () => {
         {/* NAVBAR LINKS */}
         <nav className="z-10 mt-4 w-full space-y-1 px-3">
           <SidebarLink icon={Home} label="Home" href="/" />
+          <SidebarLink icon={BarChart2} label="Dashboard" href="/dashboard" />
           <SidebarLink icon={Briefcase} label="Timeline" href="/timeline" />
           <SidebarLink icon={MessageSquare} label="Messages" href="/messages" />
           <SidebarLink icon={Bell} label="Notifications" href="/notifications" />
