@@ -409,6 +409,62 @@ export const getOverdueTasks = async (
   }
 };
 
+export const duplicateTask = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const taskId = requireNumber(req.params.taskId, "taskId");
+
+    const source = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        tags: true,
+        points: true,
+        projectId: true,
+        authorUserId: true,
+        assignedUserId: true,
+      },
+    });
+
+    if (!source) throw new HttpError(404, "Task not found");
+    await ensureProjectAccess(currentUser, source.projectId);
+
+    const nextTaskId = await getNextTaskId(prisma);
+
+    const copy = await prisma.task.create({
+      data: {
+        id: nextTaskId,
+        title: `${source.title} (copy)`,
+        description: source.description,
+        status: source.status,
+        priority: source.priority,
+        tags: source.tags,
+        points: source.points,
+        projectId: source.projectId,
+        authorUserId: currentUser.userId,
+        assignedUserId: source.assignedUserId,
+      },
+      include: { author: true, assignee: true },
+    });
+
+    await logActivity(currentUser.userId, "task_duplicated", {
+      taskId: copy.id,
+      projectId: copy.projectId,
+      details: `Duplicated task "${source.title}"`,
+    });
+
+    res.status(201).json(copy);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const bulkUpdateTaskStatus = async (
   req: AuthenticatedRequest,
   res: Response,
