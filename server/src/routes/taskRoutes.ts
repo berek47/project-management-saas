@@ -10,6 +10,7 @@ import {
   getOverdueTasks,
   bulkUpdateTaskStatus,
   duplicateTask,
+  getTaskAttachments,
 } from "../controllers/taskController";
 
 const router = Router();
@@ -22,6 +23,7 @@ router.post("/:taskId/comments", createTaskComment);
 router.get("/user/:userId", getUserTasks);
 router.get("/overdue", getOverdueTasks);
 router.patch("/bulk-status", bulkUpdateTaskStatus);
+router.get("/:taskId/attachments", getTaskAttachments);
 router.post("/:taskId/duplicate", duplicateTask);
 router.delete("/:taskId", deleteTask);
 

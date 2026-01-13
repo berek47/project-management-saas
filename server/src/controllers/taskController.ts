@@ -409,6 +409,36 @@ export const getOverdueTasks = async (
   }
 };
 
+export const getTaskAttachments = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const taskId = requireNumber(req.params.taskId, "taskId");
+
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { projectId: true },
+    });
+
+    if (!task) throw new HttpError(404, "Task not found");
+    await ensureProjectAccess(currentUser, task.projectId);
+
+    const attachments = await prisma.attachment.findMany({
+      where: { taskId },
+      include: {
+        uploadedBy: { select: { userId: true, username: true } },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    res.json(attachments);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const duplicateTask = async (
   req: AuthenticatedRequest,
   res: Response,
