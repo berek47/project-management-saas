@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthenticatedRequest } from "../lib/auth";
 import { ensureSameTeamOrSelf } from "../lib/access";
 import { HttpError, requireNumber, requireString, sendError } from "../lib/http";
+import { syncPostgresSerialSequences } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
@@ -86,6 +87,10 @@ export const postUser = async (req: AuthenticatedRequest, res: Response) => {
     if (currentUser && currentUser.authProviderId !== authProviderId) {
       throw new HttpError(403, "You can only save your own workspace profile");
     }
+
+    await syncPostgresSerialSequences(prisma, [
+      { table: "User", column: "userId" },
+    ]);
 
     const user = await prisma.user.upsert({
       where: { authProviderId },
