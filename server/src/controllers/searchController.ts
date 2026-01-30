@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "../lib/auth";
 import { getAccessibleProjectIds } from "../lib/access";
-import { HttpError, sendError } from "../lib/http";
+import { HttpError, requireNumber, requireString, sendError } from "../lib/http";
 import { prisma } from "../lib/prisma";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
@@ -75,6 +75,51 @@ export const search = async (
       take: 20,
     });
     res.json({ tasks, projects, users });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+export const filterTasks = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const accessibleProjectIds = await getAccessibleProjectIds(currentUser);
+
+    const projectId = requireNumber(req.query.projectId, "projectId", { optional: true });
+    const status = requireString(req.query.status, "status", { optional: true });
+    const priority = requireString(req.query.priority, "priority", { optional: true });
+    const assignedUserId = requireNumber(req.query.assignedUserId, "assignedUserId", { optional: true });
+
+    if (projectId) {
+      if (!accessibleProjectIds.includes(projectId)) {
+        throw new HttpError(403, "You do not have access to this project");
+      }
+    }
+
+    const tasks = await prisma.task.findMany({
+      where: {
+        ...(projectId
+          ? { projectId }
+          : accessibleProjectIds.length
+            ? { projectId: { in: accessibleProjectIds } }
+            : { OR: [{ authorUserId: currentUser.userId }, { assignedUserId: currentUser.userId }] }),
+        ...(status && { status }),
+        ...(priority && { priority }),
+        ...(assignedUserId && { assignedUserId }),
+      },
+      include: {
+        author: true,
+        assignee: true,
+        comments: { include: { user: true }, orderBy: { id: "asc" } },
+        attachments: true,
+      },
+      orderBy: { id: "asc" },
+    });
+
+    res.json(tasks);
   } catch (error) {
     sendError(res, error);
   }
