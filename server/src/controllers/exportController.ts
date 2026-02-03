@@ -82,3 +82,44 @@ export const exportProjectTasksCsv = async (
     sendError(res, error);
   }
 };
+
+export const exportProjectTasksJson = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const projectId = requireNumber(req.params.projectId, "projectId");
+
+    await ensureProjectAccess(currentUser, projectId);
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, name: true, description: true, startDate: true, endDate: true },
+    });
+
+    if (!project) {
+      throw new HttpError(404, "Project not found");
+    }
+
+    const tasks = await prisma.task.findMany({
+      where: { projectId },
+      include: {
+        author: { select: { userId: true, username: true } },
+        assignee: { select: { userId: true, username: true } },
+        comments: { include: { user: { select: { userId: true, username: true } } }, orderBy: { id: "asc" } },
+        attachments: { select: { id: true, fileURL: true, fileName: true } },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="project-${projectId}-tasks.json"`,
+    );
+    res.json({ project, tasks, exportedAt: new Date().toISOString() });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
