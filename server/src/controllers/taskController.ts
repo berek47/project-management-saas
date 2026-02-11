@@ -10,6 +10,7 @@ import {
 } from "../lib/http";
 import { getNextTaskId } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
+import { logActivity } from "./activityLogController";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
   if (!req.currentUser) {
@@ -130,6 +131,12 @@ export const createTask = async (
         assignee: true,
       },
     });
+    await logActivity(currentUser.userId, "task_created", {
+      taskId: newTask.id,
+      projectId,
+      details: `Created task "${title}"`,
+    });
+
     res.status(201).json(newTask);
   } catch (error) {
     sendError(res, error);
@@ -171,13 +178,16 @@ export const updateTaskStatus = async (
     }
 
     const updatedTask = await prisma.task.update({
-      where: {
-        id: taskId,
-      },
-      data: {
-        status,
-      },
+      where: { id: taskId },
+      data: { status },
     });
+
+    await logActivity(currentUser.userId, "task_status_changed", {
+      taskId,
+      projectId: existingTask.projectId,
+      details: `Changed status to "${status}"`,
+    });
+
     res.json(updatedTask);
   } catch (error) {
     sendError(res, error);
@@ -214,6 +224,12 @@ export const createTaskComment = async (
       include: {
         user: true,
       },
+    });
+
+    await logActivity(currentUser.userId, "task_comment_added", {
+      taskId,
+      projectId: existingTask.projectId,
+      details: `Added a comment`,
     });
 
     res.status(201).json(comment);
