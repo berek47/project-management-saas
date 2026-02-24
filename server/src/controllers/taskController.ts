@@ -48,7 +48,12 @@ export const getTasks = async (
       include: {
         author: true,
         assignee: true,
-        comments: true,
+        comments: {
+          include: {
+            user: true,
+          },
+          orderBy: { id: "asc" },
+        },
         attachments: true,
       },
       orderBy: { id: "asc" },
@@ -174,6 +179,44 @@ export const updateTaskStatus = async (
       },
     });
     res.json(updatedTask);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+export const createTaskComment = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const taskId = requireNumber(req.params.taskId, "taskId");
+    const text = requireString(req.body.text, "text");
+
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { id: true, projectId: true },
+    });
+
+    if (!existingTask) {
+      res.status(404).json({ message: "Task not found" });
+      return;
+    }
+
+    await ensureProjectAccess(currentUser, existingTask.projectId);
+
+    const comment = await prisma.comment.create({
+      data: {
+        taskId,
+        text,
+        userId: currentUser.userId,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    res.status(201).json(comment);
   } catch (error) {
     sendError(res, error);
   }
