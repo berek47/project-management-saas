@@ -1,4 +1,8 @@
 import { useAppSelector } from "@/app/redux";
+import {
+  SkeletonBlock,
+  TimelineSkeleton,
+} from "@/components/LoadingSkeletons";
 import StatusPanel from "@/components/StatusPanel";
 import { useGetTasksQuery } from "@/state/api";
 import { DisplayOption, Gantt, ViewMode } from "gantt-task-react";
@@ -72,11 +76,11 @@ const Timeline = ({
   if (isLoading) {
     return (
       <div className="px-4 xl:px-6">
-        <StatusPanel
-          title="Loading project timeline"
-          description="Preparing the timeline for this project."
-          tone="loading"
-        />
+        <div className="flex flex-wrap items-center justify-between gap-2 py-5">
+          <SkeletonBlock className="h-8 w-56 rounded-2xl" />
+          <SkeletonBlock className="h-12 w-40 rounded-full" />
+        </div>
+        <TimelineSkeleton />
       </div>
     );
   }

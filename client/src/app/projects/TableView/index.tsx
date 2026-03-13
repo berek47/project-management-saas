@@ -1,5 +1,10 @@
 import { useAppSelector } from "@/app/redux";
 import Header from "@/components/Header";
+import {
+  PageHeaderSkeleton,
+  SkeletonBlock,
+  TableSkeleton,
+} from "@/components/LoadingSkeletons";
 import StatusPanel from "@/components/StatusPanel";
 import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
 import { useGetTasksQuery } from "@/state/api";
@@ -84,11 +89,13 @@ const TableView = ({
   if (isLoading) {
     return (
       <div className="h-[540px] w-full px-4 pb-8 xl:px-6">
-        <StatusPanel
-          title="Loading table"
-          description="Preparing the task table for this project."
-          tone="loading"
-        />
+        <div className="pt-5">
+          <PageHeaderSkeleton />
+        </div>
+        <div className="mb-5 flex justify-end">
+          <SkeletonBlock className="h-10 w-28 rounded-full" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }

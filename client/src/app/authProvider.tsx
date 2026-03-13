@@ -1,3 +1,4 @@
+import { AuthLoadingScreen } from "@/components/LoadingSkeletons";
 import React, { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { setIsDarkMode } from "@/state";
@@ -92,15 +93,7 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <div className="glass-panel w-full max-w-md rounded-3xl p-8 text-center">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Loading authentication...
-          </p>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen />;
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

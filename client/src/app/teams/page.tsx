@@ -1,4 +1,9 @@
 "use client";
+import {
+  PageHeaderSkeleton,
+  TableSkeleton,
+} from "@/components/LoadingSkeletons";
+import StatusPanel from "@/components/StatusPanel";
 import { useGetTeamsQuery } from "@/state/api";
 import React from "react";
 import { useAppSelector } from "../redux";
@@ -37,18 +42,19 @@ const Teams = () => {
   if (isLoading) {
     return (
       <div className="p-8">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          Loading teams...
-        </div>
+        <PageHeaderSkeleton />
+        <TableSkeleton rows={6} />
       </div>
     );
   }
   if (isError || !teams) {
     return (
       <div className="p-8">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          We could not load teams right now. Please try again shortly.
-        </div>
+        <StatusPanel
+          title="We could not load teams"
+          description="Please try again in a moment."
+          tone="warning"
+        />
       </div>
     );
   }

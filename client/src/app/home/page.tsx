@@ -13,6 +13,12 @@ import { useAppSelector } from "../redux";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import Header from "@/components/Header";
 import {
+  CardGridSkeleton,
+  OrbitLoader,
+  PageHeaderSkeleton,
+  SkeletonBlock,
+} from "@/components/LoadingSkeletons";
+import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -26,7 +32,7 @@ import {
   YAxis,
 } from "recharts";
 import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
-import { ArrowRight, Rocket, Sparkles } from "lucide-react";
+import { ArrowRight, Rocket } from "lucide-react";
 import Link from "next/link";
 
 const taskColumns: GridColDef[] = [
@@ -78,23 +84,35 @@ const HomePage = () => {
   if (tasksLoading || isProjectsLoading) {
     return (
       <div className="container app-shell min-h-[calc(100vh-7rem)] w-full bg-transparent p-8">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <Header name="Project Workspace" />
-          <div className="hidden rounded-full border border-sand-100 bg-white/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500 shadow-sm backdrop-blur-md dark:border-stroke-dark dark:bg-dark-secondary/80 dark:text-slate-300 md:block">
-            Modern Project Control
-          </div>
-        </div>
+        <PageHeaderSkeleton />
         <div className="glass-panel rounded-3xl p-8">
-          <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sand-50 text-teal-600 dark:bg-dark-tertiary dark:text-teal-300">
-              <Sparkles className="h-6 w-6" />
+          <div className="mx-auto flex max-w-5xl flex-col gap-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center">
+                <OrbitLoader />
+              </div>
+              <SkeletonBlock className="mb-3 h-8 w-64 rounded-2xl" />
+              <SkeletonBlock className="mb-2 h-4 w-96 max-w-full rounded-full" />
+              <SkeletonBlock className="h-4 w-72 max-w-full rounded-full" />
             </div>
-            <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-white">
-              Loading your workspace
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Getting your projects, tasks, and dashboard insights ready.
-            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-3xl border border-sand-100 p-5 dark:border-stroke-dark">
+                <SkeletonBlock className="mb-3 h-3 w-24 rounded-full" />
+                <SkeletonBlock className="mb-3 h-7 w-36 rounded-2xl" />
+                <SkeletonBlock className="h-4 w-full rounded-full" />
+              </div>
+              <div className="rounded-3xl border border-sand-100 p-5 dark:border-stroke-dark">
+                <SkeletonBlock className="mb-3 h-3 w-28 rounded-full" />
+                <SkeletonBlock className="mb-3 h-7 w-40 rounded-2xl" />
+                <SkeletonBlock className="h-4 w-11/12 rounded-full" />
+              </div>
+              <div className="rounded-3xl border border-sand-100 p-5 dark:border-stroke-dark">
+                <SkeletonBlock className="mb-3 h-3 w-20 rounded-full" />
+                <SkeletonBlock className="mb-3 h-7 w-32 rounded-2xl" />
+                <SkeletonBlock className="h-4 w-10/12 rounded-full" />
+              </div>
+            </div>
+            <CardGridSkeleton />
           </div>
         </div>
       </div>

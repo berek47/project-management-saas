@@ -1,4 +1,9 @@
 "use client";
+import {
+  PageHeaderSkeleton,
+  TableSkeleton,
+} from "@/components/LoadingSkeletons";
+import StatusPanel from "@/components/StatusPanel";
 import { useGetUsersQuery } from "@/state/api";
 import React from "react";
 import { useAppSelector } from "../redux";
@@ -57,18 +62,19 @@ const Users = () => {
   if (isLoading) {
     return (
       <div className="p-8">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          Loading people...
-        </div>
+        <PageHeaderSkeleton />
+        <TableSkeleton rows={7} />
       </div>
     );
   }
   if (isError || !users) {
     return (
       <div className="p-8">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          We could not load people right now. Please try again shortly.
-        </div>
+        <StatusPanel
+          title="We could not load people"
+          description="Please try again in a moment."
+          tone="warning"
+        />
       </div>
     );
   }
