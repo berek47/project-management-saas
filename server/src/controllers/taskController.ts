@@ -11,6 +11,7 @@ import {
 import { getNextTaskId } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
 import { logActivity } from "./activityLogController";
+import { createNotification } from "./notificationController";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
   if (!req.currentUser) {
@@ -136,6 +137,15 @@ export const createTask = async (
       projectId,
       details: `Created task "${title}"`,
     });
+
+    if (assignedUserId && assignedUserId !== currentUser.userId) {
+      await createNotification(
+        assignedUserId,
+        "task_assigned",
+        `You were assigned to task "${title}"`,
+        { taskId: newTask.id, projectId },
+      );
+    }
 
     res.status(201).json(newTask);
   } catch (error) {
