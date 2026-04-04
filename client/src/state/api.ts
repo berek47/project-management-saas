@@ -1013,6 +1013,24 @@ export const api = createApi({
       }),
       invalidatesTags: ["Tasks"],
     }),
+    getPinnedTasks: build.query<Task[], number>({
+      query: (projectId) => `pinned/project/${projectId}`,
+      providesTags: ["Tasks"],
+    }),
+    pinTask: build.mutation<{ id: number; taskId: number; projectId: number }, number>({
+      query: (taskId) => ({
+        url: `pinned/${taskId}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
+    unpinTask: build.mutation<void, number>({
+      query: (taskId) => ({
+        url: `pinned/${taskId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
   }),
 });
 
@@ -1055,4 +1073,7 @@ export const {
   useGetProjectMembersQuery,
   useBulkUpdateTaskStatusMutation,
   useDuplicateTaskMutation,
+  useGetPinnedTasksQuery,
+  usePinTaskMutation,
+  useUnpinTaskMutation,
 } = api;
