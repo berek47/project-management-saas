@@ -13,6 +13,7 @@ import {
   AlertCircle,
   AlertOctagon,
   AlertTriangle,
+  Bell,
   Briefcase,
   ChevronDown,
   ChevronUp,
@@ -114,6 +115,8 @@ const Sidebar = () => {
           <SidebarLink icon={Home} label="Home" href="/" />
           <SidebarLink icon={Briefcase} label="Timeline" href="/timeline" />
           <SidebarLink icon={MessageSquare} label="Messages" href="/messages" />
+          <SidebarLink icon={Bell} label="Notifications" href="/notifications" />
+          <SidebarLink icon={AlertTriangle} label="Overdue Tasks" href="/overdue" />
           <SidebarLink icon={Search} label="Search" href="/search" />
           <SidebarLink icon={Settings} label="Settings" href="/settings" />
           <SidebarLink icon={User} label="Users" href="/users" />

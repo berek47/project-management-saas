@@ -266,7 +266,7 @@ export const api = createApi({
     },
   }),
   reducerPath: "api",
-  tagTypes: ["Projects", "Tasks", "Users", "Teams", "Conversations", "Messages"],
+  tagTypes: ["Projects", "Tasks", "Users", "Teams", "Conversations", "Messages", "Notifications"],
   endpoints: (build) => ({
     getAuthUser: build.query<AuthUserState, void>({
       queryFn: async (_, _queryApi, _extraoptions, fetchWithBQ) => {
