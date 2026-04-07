@@ -83,6 +83,44 @@ export const getTaskActivity = async (
   }
 };
 
+export const getUserActivitySummary = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const logs = await prisma.activityLog.findMany({
+      where: {
+        userId: currentUser.userId,
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: { action: true, createdAt: true },
+    });
+
+    const byAction: Record<string, number> = {};
+    const byDay: Record<string, number> = {};
+
+    for (const log of logs) {
+      byAction[log.action] = (byAction[log.action] ?? 0) + 1;
+      const day = log.createdAt.toISOString().slice(0, 10);
+      byDay[day] = (byDay[day] ?? 0) + 1;
+    }
+
+    res.json({
+      totalActions: logs.length,
+      byAction,
+      byDay,
+      periodDays: 30,
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const getUserActivity = async (
   req: AuthenticatedRequest,
   res: Response,
