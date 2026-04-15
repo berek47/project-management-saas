@@ -1,0 +1,458 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --surface-dark: rgba(15, 26, 43, 0.84);
+  --surface-dark-strong: rgba(15, 26, 43, 0.96);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root,
+.app {
+  height: 100%;
+  width: 100%;
+  @apply text-sm;
+  @apply bg-sand-50 text-slate-900;
+  @apply dark:bg-dark-bg dark:text-white;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+html {
+  background-color: #fbf7ef;
+}
+
+html.dark {
+  background-color: #08111f;
+}
+
+body {
+  background-color: #fbf7ef;
+  background-image:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 24%),
+    linear-gradient(180deg, #fbf7ef 0%, #f6f4ee 48%, #f1efe8 100%);
+}
+
+.dark body {
+  background-color: #08111f;
+  background-image:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.12), transparent 22%),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.14), transparent 18%),
+    linear-gradient(180deg, #08111f 0%, #0a1526 45%, #0d1728 100%);
+}
+
+.app-shell {
+  @apply relative overflow-hidden;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.25), transparent 30%),
+    linear-gradient(transparent 0, transparent calc(100% - 1px), rgba(15, 23, 42, 0.03) calc(100% - 1px));
+  background-size: 100% 100%, 100% 24px;
+  opacity: 0.6;
+}
+
+.glass-panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.dark .glass-panel {
+  background: var(--surface-dark);
+  border-color: rgba(94, 234, 212, 0.09);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
+}
+
+.glass-panel-strong {
+  background: var(--surface-strong);
+  backdrop-filter: blur(18px);
+}
+
+.dark .glass-panel-strong {
+  background: var(--surface-dark-strong);
+}
+
+.auth-shell {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(45, 212, 191, 0.18), transparent 24%),
+    radial-gradient(circle at 85% 18%, rgba(251, 191, 36, 0.16), transparent 22%),
+    radial-gradient(circle at 65% 78%, rgba(59, 130, 246, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(250, 245, 235, 0.92) 48%, rgba(244, 241, 234, 0.98) 100%);
+}
+
+.dark .auth-shell {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(45, 212, 191, 0.12), transparent 24%),
+    radial-gradient(circle at 85% 18%, rgba(251, 191, 36, 0.08), transparent 22%),
+    radial-gradient(circle at 65% 78%, rgba(59, 130, 246, 0.16), transparent 28%),
+    linear-gradient(135deg, rgba(4, 12, 23, 0.96) 0%, rgba(8, 18, 32, 0.98) 52%, rgba(11, 18, 31, 1) 100%);
+}
+
+.auth-grid {
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.055) 1px, transparent 1px);
+  background-position: center;
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent 92%);
+}
+
+.dark .auth-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.065) 1px, transparent 1px);
+}
+
+.auth-panel-border {
+  border-color: rgba(255, 255, 255, 0.58);
+}
+
+.dark .auth-panel-border {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.auth-panel-glow {
+  background:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.22), transparent 48%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 34%);
+  pointer-events: none;
+}
+
+.auth-hero-heading {
+  text-wrap: balance;
+}
+
+.auth-diagram {
+  width: 13rem;
+  height: 13rem;
+  opacity: 0.9;
+}
+
+.auth-diagram-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.auth-node-core {
+  left: 50%;
+  top: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  transform: translate(-50%, -50%);
+  color: #0f766e;
+}
+
+.auth-node-a,
+.auth-node-b,
+.auth-node-c {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #0f766e;
+}
+
+.auth-node-a {
+  left: 1.4rem;
+  top: 1.6rem;
+}
+
+.auth-node-b {
+  right: 1rem;
+  top: 3rem;
+}
+
+.auth-node-c {
+  left: 3rem;
+  bottom: 1rem;
+}
+
+.auth-diagram-link {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.08), rgba(45, 212, 191, 0.52), rgba(59, 130, 246, 0.2));
+  transform-origin: left center;
+}
+
+.auth-link-a {
+  left: 3.35rem;
+  top: 3.15rem;
+  width: 4.4rem;
+  transform: rotate(25deg);
+}
+
+.auth-link-b {
+  left: 7rem;
+  top: 5.6rem;
+  width: 3.2rem;
+  transform: rotate(-18deg);
+}
+
+.auth-link-c {
+  left: 4.5rem;
+  top: 8.2rem;
+  width: 4.1rem;
+  transform: rotate(-48deg);
+}
+
+.auth-form-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 75% 18%, rgba(45, 212, 191, 0.14), transparent 22%),
+    radial-gradient(circle at 28% 78%, rgba(59, 130, 246, 0.08), transparent 24%);
+}
+
+.auth-form-grid {
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.032) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.62), transparent 86%);
+}
+
+.dark .auth-form-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+}
+
+.auth-form-rings {
+  border: 1px solid rgba(45, 212, 191, 0.16);
+  box-shadow:
+    0 0 0 32px rgba(45, 212, 191, 0.045),
+    0 0 0 68px rgba(45, 212, 191, 0.025);
+  opacity: 0.85;
+}
+
+.auth-form-rings-secondary {
+  border-color: rgba(59, 130, 246, 0.12);
+  box-shadow:
+    0 0 0 22px rgba(59, 130, 246, 0.04),
+    0 0 0 48px rgba(59, 130, 246, 0.018);
+}
+
+.auth-signal-bars span {
+  display: block;
+  width: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #2dd4bf 0%, #0f766e 100%);
+  animation: auth-signal 1.2s ease-in-out infinite;
+}
+
+.auth-signal-bars span:nth-child(1) {
+  height: 8px;
+  animation-delay: 0s;
+}
+
+.auth-signal-bars span:nth-child(2) {
+  height: 14px;
+  animation-delay: 0.15s;
+}
+
+.auth-signal-bars span:nth-child(3) {
+  height: 20px;
+  animation-delay: 0.3s;
+}
+
+.auth-input {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.88));
+}
+
+.dark .auth-input {
+  background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.25));
+}
+
+.auth-orb {
+  position: absolute;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 9999px;
+  filter: blur(24px);
+  opacity: 0.48;
+  pointer-events: none;
+  animation: auth-float 18s ease-in-out infinite;
+}
+
+.auth-orb-cyan {
+  top: 5%;
+  left: -6rem;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.34) 0%, rgba(45, 212, 191, 0.04) 68%, transparent 74%);
+}
+
+.auth-orb-amber {
+  right: -5rem;
+  top: 10%;
+  width: 20rem;
+  height: 20rem;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.26) 0%, rgba(245, 158, 11, 0.04) 68%, transparent 74%);
+  animation-duration: 20s;
+  animation-direction: reverse;
+}
+
+.auth-orb-indigo {
+  bottom: -7rem;
+  left: 38%;
+  width: 28rem;
+  height: 28rem;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(59, 130, 246, 0.03) 68%, transparent 74%);
+  animation-duration: 24s;
+}
+
+.auth-pulse-ring {
+  animation: auth-pulse 2.8s ease-in-out infinite;
+}
+
+.auth-rise {
+  animation: auth-rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.auth-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.auth-delay-3 {
+  animation-delay: 0.24s;
+}
+
+.auth-delay-4 {
+  animation-delay: 0.32s;
+}
+
+.auth-button-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 24%, rgba(255, 255, 255, 0.18) 48%, transparent 72%);
+  transform: translateX(-140%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
+}
+
+.group:hover .auth-button-sheen {
+  transform: translateX(140%);
+}
+
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -18px, 0) scale(1.05);
+  }
+}
+
+@keyframes auth-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgba(45, 212, 191, 0);
+  }
+}
+
+@keyframes auth-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes auth-signal {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scaleY(0.78);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.08);
+  }
+}
+
+/* TIMELINE STYLING */
+.timeline ._3_ygE {
+  @apply rounded-tl-md border border-r-0 border-sand-100 dark:border-stroke-dark;
+}
+.timeline ._2eZzQ {
+  @apply border-sand-100 dark:border-stroke-dark;
+}
+.timeline ._2dZTy {
+  @apply fill-sand-50 dark:fill-dark-secondary;
+}
+.timeline ._2dZTy:nth-child(even) {
+  @apply fill-white dark:fill-dark-tertiary;
+}
+.timeline ._35nLX {
+  @apply fill-sand-50 stroke-sand-100 dark:fill-dark-secondary dark:stroke-stroke-dark;
+}
+.timeline ._9w8d5 {
+  @apply fill-[#333] dark:fill-white;
+}
+.timeline ._34SS0 {
+  @apply bg-sand-50 dark:bg-dark-secondary;
+}
+.timeline ._34SS0:nth-of-type(even) {
+  @apply bg-white dark:bg-dark-tertiary;
+}
+.timeline ._RuwuK,
+.timeline ._3rUKi,
+.timeline ._1rLuZ {
+  @apply stroke-sand-100 dark:stroke-stroke-dark;
+}
+.timeline ._3ZbQT {
+  @apply border-l-0 border-sand-100 dark:border-stroke-dark;
+}
+.timeline ._3T42e {
+  @apply bg-sand-50 dark:bg-dark-bg;
+}
+.timeline ._29NTg {
+  @apply dark:text-neutral-500;
+}
+
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
