@@ -36,9 +36,10 @@ const BoardView = ({
     error,
   } = useGetTasksQuery({ projectId: Number(id) });
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
+  const projectId = Number(id);
 
   const moveTask = (taskId: number, toStatus: string) => {
-    updateTaskStatus({ taskId, status: toStatus });
+    updateTaskStatus({ taskId, status: toStatus, projectId });
   };
 
   if (isLoading) {
@@ -78,6 +79,18 @@ const BoardView = ({
       return matchesSearch && matchesCompletion;
     }) || [];
 
+  const tasksByStatus = filteredTasks.reduce<Record<string, TaskType[]>>(
+    (groups, task) => {
+      const status = task.status || "To Do";
+      if (!groups[status]) {
+        groups[status] = [];
+      }
+      groups[status].push(task);
+      return groups;
+    },
+    {},
+  );
+
   return (
     <DndProvider backend={HTML5Backend}>
       {filteredTasks.length > 0 ? (
@@ -86,7 +99,7 @@ const BoardView = ({
             <TaskColumn
               key={status}
               status={status}
-              tasks={filteredTasks}
+              tasks={tasksByStatus[status] || []}
               moveTask={moveTask}
               setIsModalNewTaskOpen={setIsModalNewTaskOpen}
             />
@@ -127,7 +140,7 @@ const TaskColumn = ({
     }),
   }));
 
-  const tasksCount = tasks.filter((task) => task.status === status).length;
+  const tasksCount = tasks.length;
 
   const statusColor: any = {
     "To Do": "#2563EB",
@@ -194,11 +207,9 @@ const TaskColumn = ({
         </div>
       </div>
 
-      {tasks
-        .filter((task) => task.status === status)
-        .map((task) => (
-          <Task key={task.id} task={task} moveTask={moveTask} />
-        ))}
+      {tasks.map((task) => (
+        <Task key={task.id} task={task} moveTask={moveTask} />
+      ))}
     </div>
   );
 };

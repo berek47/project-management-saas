@@ -20,6 +20,7 @@ import {
   Layers3,
   LockIcon,
   LucideIcon,
+  MessageSquare,
   Search,
   Settings,
   ShieldAlert,
@@ -112,6 +113,7 @@ const Sidebar = () => {
         <nav className="z-10 mt-4 w-full space-y-1 px-3">
           <SidebarLink icon={Home} label="Home" href="/" />
           <SidebarLink icon={Briefcase} label="Timeline" href="/timeline" />
+          <SidebarLink icon={MessageSquare} label="Messages" href="/messages" />
           <SidebarLink icon={Search} label="Search" href="/search" />
           <SidebarLink icon={Settings} label="Settings" href="/settings" />
           <SidebarLink icon={User} label="Users" href="/users" />

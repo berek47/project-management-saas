@@ -12,6 +12,7 @@ import taskRoutes from "./routes/taskRoutes";
 import searchRoutes from "./routes/searchRoutes";
 import userRoutes from "./routes/userRoutes";
 import teamRoutes from "./routes/teamRoutes";
+import conversationRoutes from "./routes/conversationRoutes";
 
 /* CONFIGURATIONS */
 const app = express();
@@ -48,6 +49,7 @@ app.use("/tasks", taskRoutes);
 app.use("/search", searchRoutes);
 app.use("/users", userRoutes);
 app.use("/teams", teamRoutes);
+app.use("/conversations", conversationRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });
