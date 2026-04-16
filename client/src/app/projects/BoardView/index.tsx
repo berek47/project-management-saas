@@ -170,11 +170,11 @@ const TaskColumn = ({
       ref={(instance) => {
         drop(instance);
       }}
-      className={`rounded-3xl py-2 xl:px-2 ${
+      className={`relative overflow-visible rounded-3xl py-2 xl:px-2 ${
         isOver ? "bg-teal-500/10 dark:bg-teal-400/10" : ""
       }`}
     >
-      <div className="mb-3 flex w-full">
+      <div className="relative z-10 mb-3 flex w-full">
         <div
           className={`w-2 !bg-[${statusColor[status]}] rounded-s-lg`}
           style={{ backgroundColor: statusColor[status] }}
@@ -300,7 +300,9 @@ const Task = ({ task, moveTask, onOpenDiscussion }: TaskProps) => {
       ref={(instance) => {
         drag(instance);
       }}
-      className={`glass-panel relative mb-4 rounded-3xl ${
+      className={`glass-panel relative mb-4 overflow-visible rounded-3xl ${
+        isTaskMenuOpen ? "z-30" : "z-0"
+      } ${
         isDragging ? "opacity-50" : "opacity-100"
       }`}
     >
@@ -337,7 +339,7 @@ const Task = ({ task, moveTask, onOpenDiscussion }: TaskProps) => {
           </button>
         </div>
         {isTaskMenuOpen ? (
-          <div className="absolute right-4 top-14 z-10 min-w-52 rounded-2xl border border-sand-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-stroke-dark dark:bg-dark-secondary/95">
+          <div className="absolute right-4 top-14 z-40 min-w-52 rounded-2xl border border-sand-100 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-stroke-dark dark:bg-dark-secondary/95">
             <button
               className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-sand-50 dark:text-slate-200 dark:hover:bg-dark-tertiary"
               onClick={async () => {
