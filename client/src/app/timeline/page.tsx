@@ -2,6 +2,11 @@
 
 import { useAppSelector } from "@/app/redux";
 import Header from "@/components/Header";
+import {
+  PageHeaderSkeleton,
+  TimelineSkeleton,
+} from "@/components/LoadingSkeletons";
+import StatusPanel from "@/components/StatusPanel";
 import { useGetProjectsQuery } from "@/state/api";
 import { DisplayOption, Gantt, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
@@ -46,18 +51,19 @@ const Timeline = () => {
   if (isLoading) {
     return (
       <div className="p-8">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          Loading timeline...
-        </div>
+        <PageHeaderSkeleton />
+        <TimelineSkeleton />
       </div>
     );
   }
   if (isError || !projects) {
     return (
       <div className="p-8">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          We could not load the timeline right now. Please try again shortly.
-        </div>
+        <StatusPanel
+          title="We could not load the timeline"
+          description="Please try again in a moment."
+          tone="warning"
+        />
       </div>
     );
   }
@@ -94,9 +100,11 @@ const Timeline = () => {
           </div>
         </div>
       ) : (
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          No timeline items yet. Create or load a project with start and end dates to populate this view.
-        </div>
+        <StatusPanel
+          title="No timeline items yet"
+          description="Create or load a project with start and end dates to populate this view."
+          tone="empty"
+        />
       )}
     </div>
   );

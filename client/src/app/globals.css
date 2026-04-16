@@ -369,6 +369,92 @@ body {
   transform: translateX(140%);
 }
 
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.72) 0%,
+    rgba(255, 255, 255, 0.92) 45%,
+    rgba(226, 232, 240, 0.72) 100%
+  );
+}
+
+.skeleton-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.dark .skeleton-block {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.9) 0%,
+    rgba(51, 65, 85, 0.95) 45%,
+    rgba(30, 41, 59, 0.9) 100%
+  );
+}
+
+.dark .skeleton-block::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(148, 163, 184, 0.14) 50%,
+    transparent 100%
+  );
+}
+
+.loader-orbit {
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-orbit-ring,
+.loader-orbit-core {
+  position: absolute;
+  border-radius: 9999px;
+}
+
+.loader-orbit-ring {
+  inset: 0;
+  border: 1.5px solid rgba(20, 184, 166, 0.18);
+  animation: orbit-pulse 1.8s ease-in-out infinite;
+}
+
+.loader-orbit-ring-delay {
+  inset: 0.45rem;
+  animation-delay: 0.28s;
+  border-color: rgba(37, 99, 235, 0.16);
+}
+
+.loader-orbit-core {
+  width: 0.95rem;
+  height: 0.95rem;
+  background: linear-gradient(135deg, #2dd4bf 0%, #2563eb 100%);
+  box-shadow: 0 0 0 10px rgba(45, 212, 191, 0.08);
+  animation: orbit-core 1.25s ease-in-out infinite;
+}
+
+.dark .loader-orbit-ring {
+  border-color: rgba(45, 212, 191, 0.22);
+}
+
+.dark .loader-orbit-ring-delay {
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
 @keyframes auth-float {
   0%,
   100% {
@@ -409,6 +495,34 @@ body {
   50% {
     opacity: 1;
     transform: scaleY(1.08);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes orbit-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes orbit-core {
+  0%,
+  100% {
+    transform: scale(0.9);
+  }
+  50% {
+    transform: scale(1.08);
   }
 }
 

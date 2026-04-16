@@ -1,4 +1,5 @@
 import { useGetTasksQuery, useUpdateTaskStatusMutation } from "@/state/api";
+import { BoardSkeleton } from "@/components/LoadingSkeletons";
 import StatusPanel from "@/components/StatusPanel";
 import ModalTaskDiscussion from "@/components/ModalTaskDiscussion";
 import React from "react";
@@ -48,13 +49,7 @@ const BoardView = ({
 
   if (isLoading) {
     return (
-      <div className="p-4">
-        <StatusPanel
-          title="Loading board"
-          description="Preparing the board for this project."
-          tone="loading"
-        />
-      </div>
+      <BoardSkeleton />
     );
   }
   if (error) {

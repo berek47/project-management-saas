@@ -1,3 +1,4 @@
+import { OrbitLoader } from "@/components/LoadingSkeletons";
 import { AlertTriangle, Search, Sparkles } from "lucide-react";
 import React from "react";
 
@@ -27,11 +28,17 @@ const StatusPanel = ({ title, description, tone = "loading" }: Props) => {
   return (
     <div className="glass-panel rounded-3xl p-8">
       <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-        <div
-          className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full ${toneStyles[tone]}`}
-        >
-          {toneIcons[tone]}
-        </div>
+        {tone === "loading" ? (
+          <div className="mb-4 flex h-16 w-16 items-center justify-center">
+            <OrbitLoader />
+          </div>
+        ) : (
+          <div
+            className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full ${toneStyles[tone]}`}
+          >
+            {toneIcons[tone]}
+          </div>
+        )}
         <h2 className="mb-2 text-xl font-semibold text-slate-900 dark:text-white">
           {title}
         </h2>

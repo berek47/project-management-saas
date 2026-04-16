@@ -2,7 +2,12 @@
 
 import { useAppSelector } from "@/app/redux";
 import Header from "@/components/Header";
+import {
+  CardGridSkeleton,
+  TableSkeleton,
+} from "@/components/LoadingSkeletons";
 import ModalNewTask from "@/components/ModalNewTask";
+import StatusPanel from "@/components/StatusPanel";
 import TaskCard from "@/components/TaskCard";
 import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
 import {
@@ -96,10 +101,11 @@ const ReusablePriorityPage = ({ priority }: Props) => {
   if (isTasksError || !tasks) {
     return (
       <div className="m-5 p-4">
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          We could not load tasks for this priority right now. Please try again
-          shortly.
-        </div>
+        <StatusPanel
+          title="We could not load these tasks"
+          description="Please try again in a moment."
+          tone="warning"
+        />
       </div>
     );
   }
@@ -144,9 +150,11 @@ const ReusablePriorityPage = ({ priority }: Props) => {
         </button>
       </div>
       {isLoading ? (
-        <div className="glass-panel rounded-3xl p-6 text-slate-600 dark:text-slate-300">
-          Loading {priority.toLowerCase()} tasks...
-        </div>
+        view === "list" ? (
+          <CardGridSkeleton />
+        ) : (
+          <TableSkeleton rows={6} />
+        )
       ) : view === "list" ? (
         <>
           {filteredTasks && filteredTasks.length > 0 ? (

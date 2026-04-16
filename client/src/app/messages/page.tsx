@@ -1,6 +1,7 @@
 "use client";
 
 import Header from "@/components/Header";
+import { MessageShellSkeleton } from "@/components/LoadingSkeletons";
 import StatusPanel from "@/components/StatusPanel";
 import {
   ConversationSummary,
@@ -191,11 +192,7 @@ const MessagesPage = () => {
   if (isLoading) {
     return (
       <div className="px-4 py-6 xl:px-6">
-        <StatusPanel
-          title="Loading messages"
-          description="Preparing your conversations and workspace channels."
-          tone="loading"
-        />
+        <MessageShellSkeleton />
       </div>
     );
   }

@@ -1,6 +1,10 @@
 "use client";
 
 import Header from "@/components/Header";
+import {
+  SearchResultsSkeleton,
+  SkeletonBlock,
+} from "@/components/LoadingSkeletons";
 import ProjectCard from "@/components/ProjectCard";
 import StatusPanel from "@/components/StatusPanel";
 import TaskCard from "@/components/TaskCard";
@@ -92,11 +96,18 @@ const Search = () => {
 
       <div className="space-y-8 p-1">
         {isLoading && (
-          <StatusPanel
-            title="Searching your workspace"
-            description="Looking through projects, tasks, and people for matches."
-            tone="loading"
-          />
+          <>
+            <div className="glass-panel rounded-3xl p-5">
+              <div className="mb-4 max-w-2xl space-y-3">
+                <SkeletonBlock className="h-3 w-20 rounded-full" />
+                <SkeletonBlock className="h-10 w-72 rounded-2xl" />
+              </div>
+              <div className="relative max-w-2xl">
+                <SkeletonBlock className="h-14 w-full rounded-full" />
+              </div>
+            </div>
+            <SearchResultsSkeleton />
+          </>
         )}
         {isError && (
           <StatusPanel

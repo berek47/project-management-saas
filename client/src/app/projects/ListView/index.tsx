@@ -1,4 +1,9 @@
 import Header from "@/components/Header";
+import {
+  CardGridSkeleton,
+  PageHeaderSkeleton,
+  SkeletonBlock,
+} from "@/components/LoadingSkeletons";
 import StatusPanel from "@/components/StatusPanel";
 import TaskCard from "@/components/TaskCard";
 import { Task, useGetTasksQuery } from "@/state/api";
@@ -26,11 +31,13 @@ const ListView = ({
   if (isLoading) {
     return (
       <div className="px-4 pb-8 xl:px-6">
-        <StatusPanel
-          title="Loading list"
-          description="Preparing your tasks for this project."
-          tone="loading"
-        />
+        <div className="pt-5">
+          <PageHeaderSkeleton />
+        </div>
+        <div className="mb-5 flex justify-end">
+          <SkeletonBlock className="h-10 w-28 rounded-full" />
+        </div>
+        <CardGridSkeleton />
       </div>
     );
   }
