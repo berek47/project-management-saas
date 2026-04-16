@@ -8,6 +8,7 @@ import {
   requireString,
   sendError,
 } from "../lib/http";
+import { syncPostgresSerialSequences } from "../lib/postgresSequences";
 import { prisma } from "../lib/prisma";
 
 const requireCurrentUser = (req: AuthenticatedRequest) => {
@@ -101,6 +102,10 @@ export const createTask = async (
 
       ensureSameTeamOrSelf(currentUser, assignee);
     }
+
+    await syncPostgresSerialSequences(prisma, [
+      { table: "Task", column: "id" },
+    ]);
 
     const newTask = await prisma.task.create({
       data: {

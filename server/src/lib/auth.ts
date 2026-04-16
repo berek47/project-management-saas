@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { env, isPreviewAuthMode } from "../config/env";
+import { sendError } from "./http";
+import { syncPostgresSerialSequences } from "./postgresSequences";
 import { prisma } from "./prisma";
 
 type AuthPayload = {
@@ -20,6 +22,13 @@ const createStarterWorkspaceForUser = async (user: AuthenticatedUser) => {
   if (user.teamId) {
     return user;
   }
+
+  await syncPostgresSerialSequences(prisma, [
+    { table: "Team", column: "id" },
+    { table: "Project", column: "id" },
+    { table: "ProjectTeam", column: "id" },
+    { table: "Task", column: "id" },
+  ]);
 
   const created = await prisma.$transaction(async (tx) => {
     const team = await tx.team.create({
@@ -152,6 +161,10 @@ const loadCurrentUser = async (payload: AuthPayload) => {
     payload.email?.split("@")[0] ||
     `user-${payload.sub.slice(0, 8)}`;
 
+  await syncPostgresSerialSequences(prisma, [
+    { table: "User", column: "userId" },
+  ]);
+
   const user = await prisma.user.upsert({
     where: { authProviderId: payload.sub },
     update: {
@@ -192,17 +205,25 @@ export const requireAuth = async (
     return;
   }
 
+  const token = authHeader.slice("Bearer ".length).trim();
+
+  let payload: AuthPayload;
   try {
-    const token = authHeader.slice("Bearer ".length).trim();
-    const payload = await verifySupabaseToken(token);
-    const currentUser = await loadCurrentUser(payload);
-    (req as AuthenticatedRequest).auth = payload;
-    (req as AuthenticatedRequest).currentUser = currentUser;
-    next();
+    payload = await verifySupabaseToken(token);
   } catch (error) {
     res.status(401).json({
       message:
         error instanceof Error ? error.message : "Authentication failed",
     });
+    return;
+  }
+
+  try {
+    const currentUser = await loadCurrentUser(payload);
+    (req as AuthenticatedRequest).auth = payload;
+    (req as AuthenticatedRequest).currentUser = currentUser;
+    next();
+  } catch (error) {
+    sendError(res, error);
   }
 };
