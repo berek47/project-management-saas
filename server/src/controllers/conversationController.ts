@@ -395,6 +395,123 @@ export const createMessage = async (
   }
 };
 
+export const updateMessage = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const conversationId = requireNumber(
+      req.params.conversationId,
+      "conversationId",
+    );
+    const messageId = requireNumber(req.params.messageId, "messageId");
+    const body = requireString(req.body.body, "body");
+
+    await getConversationForUser(conversationId, currentUser.userId);
+
+    const existingMessage = await prisma.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId,
+      },
+    });
+
+    if (!existingMessage) {
+      throw new HttpError(404, "Message not found");
+    }
+
+    if (existingMessage.senderUserId !== currentUser.userId) {
+      throw new HttpError(403, "You can only edit your own messages");
+    }
+
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: { body },
+      include: {
+        sender: {
+          select: userSelect,
+        },
+      },
+    });
+
+    await prisma.$transaction([
+      prisma.conversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      }),
+      prisma.conversationParticipant.updateMany({
+        where: {
+          conversationId,
+          userId: currentUser.userId,
+        },
+        data: {
+          lastReadAt: new Date(),
+        },
+      }),
+    ]);
+
+    res.json(updatedMessage);
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
+export const deleteMessage = async (
+  req: AuthenticatedRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const currentUser = requireCurrentUser(req);
+    const conversationId = requireNumber(
+      req.params.conversationId,
+      "conversationId",
+    );
+    const messageId = requireNumber(req.params.messageId, "messageId");
+
+    await getConversationForUser(conversationId, currentUser.userId);
+
+    const existingMessage = await prisma.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId,
+      },
+    });
+
+    if (!existingMessage) {
+      throw new HttpError(404, "Message not found");
+    }
+
+    if (existingMessage.senderUserId !== currentUser.userId) {
+      throw new HttpError(403, "You can only delete your own messages");
+    }
+
+    await prisma.message.delete({
+      where: { id: messageId },
+    });
+
+    await prisma.$transaction([
+      prisma.conversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      }),
+      prisma.conversationParticipant.updateMany({
+        where: {
+          conversationId,
+          userId: currentUser.userId,
+        },
+        data: {
+          lastReadAt: new Date(),
+        },
+      }),
+    ]);
+
+    res.json({ message: "Message deleted" });
+  } catch (error) {
+    sendError(res, error);
+  }
+};
+
 export const markConversationRead = async (
   req: AuthenticatedRequest,
   res: Response,

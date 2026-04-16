@@ -6,6 +6,7 @@ import {
   ConversationSummary,
   User,
   useCreateDirectConversationMutation,
+  useDeleteMessageMutation,
   useCreateMessageMutation,
   useCreateTeamConversationMutation,
   useGetAuthUserQuery,
@@ -13,9 +14,10 @@ import {
   useGetConversationsQuery,
   useGetUsersQuery,
   useMarkConversationReadMutation,
+  useUpdateMessageMutation,
 } from "@/state/api";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Plus, Send, Users } from "lucide-react";
+import { MessageSquare, Pencil, Plus, Send, Trash2, Users, X } from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import { resolveImageUrl } from "@/lib/utils";
@@ -47,11 +49,19 @@ const MessagesPage = () => {
     useCreateTeamConversationMutation();
   const [createMessage, { isLoading: isSendingMessage }] =
     useCreateMessageMutation();
+  const [updateMessage, { isLoading: isUpdatingMessage }] =
+    useUpdateMessageMutation();
+  const [deleteMessage, { isLoading: isDeletingMessage }] =
+    useDeleteMessageMutation();
   const [markConversationRead] = useMarkConversationReadMutation();
   const [selectedConversationId, setSelectedConversationId] = React.useState<
     number | null
   >(null);
   const [composerValue, setComposerValue] = React.useState("");
+  const [editingMessageId, setEditingMessageId] = React.useState<number | null>(
+    null,
+  );
+  const [editingValue, setEditingValue] = React.useState("");
 
   React.useEffect(() => {
     if (!selectedConversationId && conversations?.length) {
@@ -99,16 +109,69 @@ const MessagesPage = () => {
   const handleSendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!selectedConversationId || !composerValue.trim()) {
+    const nextMessage = composerValue.trim();
+
+    if (!selectedConversationId || !nextMessage) {
       return;
     }
 
-    await createMessage({
-      conversationId: selectedConversationId,
-      body: composerValue.trim(),
-    }).unwrap();
-
     setComposerValue("");
+
+    try {
+      await createMessage({
+        conversationId: selectedConversationId,
+        body: nextMessage,
+      }).unwrap();
+    } catch {
+      setComposerValue(nextMessage);
+    }
+  };
+
+  const handleStartEditing = (messageId: number, body: string) => {
+    setEditingMessageId(messageId);
+    setEditingValue(body);
+  };
+
+  const handleCancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingValue("");
+  };
+
+  const handleSaveMessage = async (
+    event: React.FormEvent<HTMLFormElement>,
+    messageId: number,
+  ) => {
+    event.preventDefault();
+
+    if (!selectedConversationId || !editingValue.trim()) {
+      return;
+    }
+
+    const nextBody = editingValue.trim();
+    setEditingMessageId(null);
+    setEditingValue("");
+
+    try {
+      await updateMessage({
+        conversationId: selectedConversationId,
+        messageId,
+        body: nextBody,
+      }).unwrap();
+    } catch {
+      setEditingMessageId(messageId);
+      setEditingValue(nextBody);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: number) => {
+    if (!selectedConversationId) {
+      return;
+    }
+
+    await deleteMessage({
+      conversationId: selectedConversationId,
+      messageId,
+    }).unwrap();
   };
 
   if (isLoading) {
@@ -300,6 +363,7 @@ const MessagesPage = () => {
                 ) : hasMessages ? (
                   messages.map((message) => {
                     const isOwnMessage = message.senderUserId === currentUserId;
+                    const isEditing = editingMessageId === message.id;
                     return (
                       <div
                         key={message.id}
@@ -322,9 +386,81 @@ const MessagesPage = () => {
                               })}
                             </span>
                           </div>
-                          <p className="whitespace-pre-wrap text-sm leading-6">
-                            {message.body}
-                          </p>
+                          {isEditing ? (
+                            <form
+                              className="space-y-3"
+                              onSubmit={(event) =>
+                                void handleSaveMessage(event, message.id)
+                              }
+                            >
+                              <textarea
+                                value={editingValue}
+                                onChange={(event) =>
+                                  setEditingValue(event.target.value)
+                                }
+                                className={`min-h-[88px] w-full rounded-2xl border px-3 py-2 text-sm leading-6 outline-none transition ${
+                                  isOwnMessage
+                                    ? "border-white/30 bg-white/10 text-white placeholder:text-white/70 focus:border-white/60"
+                                    : "border-sand-100 bg-white text-slate-900 focus:border-teal-500 dark:border-stroke-dark dark:bg-dark-secondary dark:text-white"
+                                }`}
+                              />
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold transition ${
+                                    isOwnMessage
+                                      ? "bg-white/15 text-white hover:bg-white/20"
+                                      : "bg-sand-50 text-slate-700 hover:bg-sand-100 dark:bg-dark-tertiary dark:text-slate-200"
+                                  }`}
+                                  onClick={handleCancelEditing}
+                                >
+                                  <X className="mr-1 h-3 w-3" />
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={isUpdatingMessage || !editingValue.trim()}
+                                  className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                    isOwnMessage
+                                      ? "bg-white text-blue-primary hover:bg-slate-100"
+                                      : "bg-blue-primary text-white hover:bg-teal-600"
+                                  }`}
+                                >
+                                  <Pencil className="mr-1 h-3 w-3" />
+                                  Save
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <>
+                              <p className="whitespace-pre-wrap text-sm leading-6">
+                                {message.body}
+                              </p>
+                              {isOwnMessage ? (
+                                <div className="mt-3 flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
+                                    onClick={() =>
+                                      handleStartEditing(message.id, message.body)
+                                    }
+                                  >
+                                    <Pencil className="mr-1 h-3 w-3" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-500/30"
+                                    onClick={() => void handleDeleteMessage(message.id)}
+                                    disabled={isDeletingMessage}
+                                  >
+                                    <Trash2 className="mr-1 h-3 w-3" />
+                                    Delete
+                                  </button>
+                                </div>
+                              ) : null}
+                            </>
+                          )}
                         </div>
                       </div>
                     );
