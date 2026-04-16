@@ -4,33 +4,42 @@ type SequenceClient =
   | PrismaClient
   | Prisma.TransactionClient;
 
-type SequenceTarget = {
-  column: string;
-  table: string;
+export const getNextUserId = async (client: SequenceClient) => {
+  const result = await client.user.aggregate({
+    _max: { userId: true },
+  });
+
+  return (result._max.userId ?? 0) + 1;
 };
 
-const assertIdentifier = (value: string) => {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) {
-    throw new Error(`Invalid SQL identifier: ${value}`);
-  }
+export const getNextTeamId = async (client: SequenceClient) => {
+  const result = await client.team.aggregate({
+    _max: { id: true },
+  });
 
-  return `"${value}"`;
+  return (result._max.id ?? 0) + 1;
 };
 
-export const syncPostgresSerialSequences = async (
-  client: SequenceClient,
-  targets: SequenceTarget[],
-) => {
-  for (const target of targets) {
-    const tableName = assertIdentifier(target.table);
-    const columnName = assertIdentifier(target.column);
+export const getNextProjectId = async (client: SequenceClient) => {
+  const result = await client.project.aggregate({
+    _max: { id: true },
+  });
 
-    await client.$executeRawUnsafe(`
-      SELECT setval(
-        pg_get_serial_sequence('${tableName}', '${target.column}'),
-        COALESCE((SELECT MAX(${columnName}) FROM ${tableName}), 0) + 1,
-        false
-      );
-    `);
-  }
+  return (result._max.id ?? 0) + 1;
+};
+
+export const getNextProjectTeamId = async (client: SequenceClient) => {
+  const result = await client.projectTeam.aggregate({
+    _max: { id: true },
+  });
+
+  return (result._max.id ?? 0) + 1;
+};
+
+export const getNextTaskId = async (client: SequenceClient) => {
+  const result = await client.task.aggregate({
+    _max: { id: true },
+  });
+
+  return (result._max.id ?? 0) + 1;
 };
