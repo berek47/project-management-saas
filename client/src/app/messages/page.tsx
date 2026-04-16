@@ -17,7 +17,16 @@ import {
   useUpdateMessageMutation,
 } from "@/state/api";
 import { formatDistanceToNow } from "date-fns";
-import { MessageSquare, Pencil, Plus, Send, Trash2, Users, X } from "lucide-react";
+import {
+  EllipsisVertical,
+  MessageSquare,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import React from "react";
 import { resolveImageUrl } from "@/lib/utils";
@@ -62,6 +71,9 @@ const MessagesPage = () => {
     null,
   );
   const [editingValue, setEditingValue] = React.useState("");
+  const [openMessageMenuId, setOpenMessageMenuId] = React.useState<number | null>(
+    null,
+  );
 
   React.useEffect(() => {
     if (!selectedConversationId && conversations?.length) {
@@ -128,6 +140,7 @@ const MessagesPage = () => {
   };
 
   const handleStartEditing = (messageId: number, body: string) => {
+    setOpenMessageMenuId(null);
     setEditingMessageId(messageId);
     setEditingValue(body);
   };
@@ -168,6 +181,7 @@ const MessagesPage = () => {
       return;
     }
 
+    setOpenMessageMenuId(null);
     await deleteMessage({
       conversationId: selectedConversationId,
       messageId,
@@ -376,15 +390,55 @@ const MessagesPage = () => {
                               : "border border-sand-100 bg-white/85 text-slate-900 dark:border-stroke-dark dark:bg-dark-secondary/85 dark:text-white"
                           }`}
                         >
-                          <div className="mb-2 flex items-center gap-2 text-xs opacity-80">
-                            <span className="font-semibold">
-                              {message.sender.username}
-                            </span>
-                            <span>
-                              {formatDistanceToNow(new Date(message.createdAt), {
-                                addSuffix: true,
-                              })}
-                            </span>
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-2 text-xs opacity-80">
+                              <span className="font-semibold">
+                                {message.sender.username}
+                              </span>
+                              <span>
+                                {formatDistanceToNow(new Date(message.createdAt), {
+                                  addSuffix: true,
+                                })}
+                              </span>
+                            </div>
+                            {isOwnMessage && !isEditing ? (
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/20"
+                                  onClick={() =>
+                                    setOpenMessageMenuId((current) =>
+                                      current === message.id ? null : message.id,
+                                    )
+                                  }
+                                >
+                                  <EllipsisVertical className="h-4 w-4" />
+                                </button>
+                                {openMessageMenuId === message.id ? (
+                                  <div className="absolute right-0 top-9 z-10 min-w-32 rounded-2xl border border-white/15 bg-[#0f766e] p-2 shadow-xl">
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-semibold text-white transition hover:bg-white/10"
+                                      onClick={() =>
+                                        handleStartEditing(message.id, message.body)
+                                      }
+                                    >
+                                      <Pencil className="mr-2 h-3 w-3" />
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-semibold text-white transition hover:bg-white/10"
+                                      onClick={() => void handleDeleteMessage(message.id)}
+                                      disabled={isDeletingMessage}
+                                    >
+                                      <Trash2 className="mr-2 h-3 w-3" />
+                                      Delete
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
                           {isEditing ? (
                             <form
@@ -432,34 +486,9 @@ const MessagesPage = () => {
                               </div>
                             </form>
                           ) : (
-                            <>
-                              <p className="whitespace-pre-wrap text-sm leading-6">
-                                {message.body}
-                              </p>
-                              {isOwnMessage ? (
-                                <div className="mt-3 flex items-center justify-end gap-2">
-                                  <button
-                                    type="button"
-                                    className="inline-flex items-center rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
-                                    onClick={() =>
-                                      handleStartEditing(message.id, message.body)
-                                    }
-                                  >
-                                    <Pencil className="mr-1 h-3 w-3" />
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="inline-flex items-center rounded-full bg-white/15 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-500/30"
-                                    onClick={() => void handleDeleteMessage(message.id)}
-                                    disabled={isDeletingMessage}
-                                  >
-                                    <Trash2 className="mr-1 h-3 w-3" />
-                                    Delete
-                                  </button>
-                                </div>
-                              ) : null}
-                            </>
+                            <p className="whitespace-pre-wrap text-sm leading-6">
+                              {message.body}
+                            </p>
                           )}
                         </div>
                       </div>
