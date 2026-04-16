@@ -42,6 +42,14 @@ export interface Attachment {
   uploadedById: number;
 }
 
+export interface Comment {
+  id: number;
+  text: string;
+  taskId: number;
+  userId: number;
+  user?: User;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -392,6 +400,83 @@ export const api = createApi({
         method: "POST",
         body: task,
       }),
+      invalidatesTags: ["Tasks"],
+    }),
+    createTaskComment: build.mutation<
+      Comment,
+      { taskId: number; text: string; projectId?: number }
+    >({
+      query: ({ taskId, text }) => ({
+        url: `tasks/${taskId}/comments`,
+        method: "POST",
+        body: { text },
+      }),
+      async onQueryStarted(
+        { projectId, taskId, text },
+        { dispatch, getState, queryFulfilled },
+      ) {
+        const state = getState() as ApiStateShape;
+        const currentUser = getCurrentUserFromApiState(state);
+        const optimisticId = -Date.now();
+
+        const applyCommentPatch = (arg: { projectId?: number } | void) =>
+          dispatch(
+            api.util.updateQueryData("getTasks", arg, (draft) => {
+              const task = draft.find((item) => item.id === taskId);
+              if (!task || !currentUser?.userId) {
+                return;
+              }
+
+              const nextComment: Comment = {
+                id: optimisticId,
+                text,
+                taskId,
+                userId: currentUser.userId,
+                user: currentUser,
+              };
+
+              if (!task.comments) {
+                task.comments = [];
+              }
+
+              task.comments.push(nextComment);
+            }),
+          );
+
+        const patches = [];
+
+        if (projectId !== undefined) {
+          patches.push(applyCommentPatch({ projectId }));
+        }
+
+        patches.push(applyCommentPatch(undefined));
+
+        try {
+          const { data } = await queryFulfilled;
+
+          const replaceComment = (arg: { projectId?: number } | void) =>
+            dispatch(
+              api.util.updateQueryData("getTasks", arg, (draft) => {
+                const task = draft.find((item) => item.id === taskId);
+                const pendingComment = task?.comments?.find(
+                  (comment) => comment.id === optimisticId,
+                );
+
+                if (pendingComment) {
+                  Object.assign(pendingComment, data);
+                }
+              }),
+            );
+
+          if (projectId !== undefined) {
+            replaceComment({ projectId });
+          }
+
+          replaceComment(undefined);
+        } catch {
+          patches.forEach((patch) => patch.undo());
+        }
+      },
       invalidatesTags: ["Tasks"],
     }),
     updateTaskStatus: build.mutation<
@@ -778,6 +863,7 @@ export const {
   useDeleteProjectMutation,
   useGetTasksQuery,
   useCreateTaskMutation,
+  useCreateTaskCommentMutation,
   useUpdateTaskStatusMutation,
   useSearchQuery,
   useGetUsersQuery,

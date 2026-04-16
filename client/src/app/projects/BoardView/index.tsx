@@ -1,5 +1,6 @@
 import { useGetTasksQuery, useUpdateTaskStatusMutation } from "@/state/api";
 import StatusPanel from "@/components/StatusPanel";
+import ModalTaskDiscussion from "@/components/ModalTaskDiscussion";
 import React from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -37,6 +38,9 @@ const BoardView = ({
   } = useGetTasksQuery({ projectId: Number(id) });
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const projectId = Number(id);
+  const [discussionTaskId, setDiscussionTaskId] = React.useState<number | null>(
+    null,
+  );
 
   const moveTask = (taskId: number, toStatus: string) => {
     updateTaskStatus({ taskId, status: toStatus, projectId });
@@ -91,8 +95,17 @@ const BoardView = ({
     {},
   );
 
+  const selectedDiscussionTask =
+    filteredTasks.find((task) => task.id === discussionTaskId) || null;
+
   return (
     <DndProvider backend={HTML5Backend}>
+      <ModalTaskDiscussion
+        isOpen={discussionTaskId !== null}
+        onClose={() => setDiscussionTaskId(null)}
+        projectId={projectId}
+        task={selectedDiscussionTask}
+      />
       {filteredTasks.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
           {taskStatus.map((status) => (
@@ -101,6 +114,7 @@ const BoardView = ({
               status={status}
               tasks={tasksByStatus[status] || []}
               moveTask={moveTask}
+              onOpenDiscussion={setDiscussionTaskId}
               setIsModalNewTaskOpen={setIsModalNewTaskOpen}
             />
           ))}
@@ -122,6 +136,7 @@ type TaskColumnProps = {
   status: string;
   tasks: TaskType[];
   moveTask: (taskId: number, toStatus: string) => void;
+  onOpenDiscussion: (taskId: number) => void;
   setIsModalNewTaskOpen: (isOpen: boolean) => void;
 };
 
@@ -129,6 +144,7 @@ const TaskColumn = ({
   status,
   tasks,
   moveTask,
+  onOpenDiscussion,
   setIsModalNewTaskOpen,
 }: TaskColumnProps) => {
   const [isColumnMenuOpen, setIsColumnMenuOpen] = React.useState(false);
@@ -208,7 +224,12 @@ const TaskColumn = ({
       </div>
 
       {tasks.map((task) => (
-        <Task key={task.id} task={task} moveTask={moveTask} />
+        <Task
+          key={task.id}
+          task={task}
+          moveTask={moveTask}
+          onOpenDiscussion={onOpenDiscussion}
+        />
       ))}
     </div>
   );
@@ -217,6 +238,7 @@ const TaskColumn = ({
 type TaskProps = {
   task: TaskType;
   moveTask: (taskId: number, toStatus: string) => void;
+  onOpenDiscussion: (taskId: number) => void;
 };
 
 const nextStatusByCurrent: Record<string, string | null> = {
@@ -226,7 +248,7 @@ const nextStatusByCurrent: Record<string, string | null> = {
   Completed: null,
 };
 
-const Task = ({ task, moveTask }: TaskProps) => {
+const Task = ({ task, moveTask, onOpenDiscussion }: TaskProps) => {
   const [isTaskMenuOpen, setIsTaskMenuOpen] = React.useState(false);
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
@@ -379,12 +401,16 @@ const Task = ({ task, moveTask }: TaskProps) => {
               />
             ))}
           </div>
-          <div className="flex items-center text-slate-500 dark:text-neutral-400">
+          <button
+            type="button"
+            className="flex items-center rounded-full px-2 py-1 text-slate-500 transition hover:bg-white/70 dark:text-neutral-400 dark:hover:bg-dark-tertiary"
+            onClick={() => onOpenDiscussion(task.id)}
+          >
             <MessageSquareMore size={20} />
             <span className="ml-1 text-sm">
               {numberOfComments}
             </span>
-          </div>
+          </button>
         </div>
       </div>
     </div>

@@ -1,14 +1,29 @@
 import React from "react";
-import { Menu, Moon, Search, Settings, Sun, User } from "lucide-react";
+import {
+  Bell,
+  Menu,
+  MessageSquareMore,
+  Moon,
+  Search,
+  Settings,
+  Sun,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/app/redux";
 import { setIsDarkMode, setIsSidebarCollapsed } from "@/state";
-import { isPreviewAuthMode, useGetAuthUserQuery } from "@/state/api";
+import {
+  isPreviewAuthMode,
+  useGetAuthUserQuery,
+  useGetConversationsQuery,
+  useGetTasksQuery,
+} from "@/state/api";
 import { resolveImageUrl } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 
 const Navbar = () => {
   const router = useRouter();
@@ -18,8 +33,11 @@ const Navbar = () => {
   );
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const { data: currentUser } = useGetAuthUserQuery();
+  const { data: conversations } = useGetConversationsQuery();
+  const { data: tasks } = useGetTasksQuery();
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -31,6 +49,54 @@ const Navbar = () => {
 
   if (!currentUser) return null;
   const currentUserDetails = currentUser?.userDetails;
+  const currentUserId = currentUserDetails?.userId;
+
+  const conversationNotifications =
+    conversations
+      ?.filter((conversation) => conversation.unreadCount > 0)
+      .map((conversation) => ({
+        id: `conversation-${conversation.id}`,
+        kind: "conversation" as const,
+        label:
+          conversation.type === "TEAM"
+            ? conversation.title || conversation.team?.teamName || "Team Channel"
+            : conversation.participants.find(
+                (participant) => participant.user.userId !== currentUserId,
+              )?.user.username || "Direct Message",
+        preview: conversation.lastMessage?.body || "Unread messages waiting",
+        timestamp: conversation.updatedAt,
+        count: conversation.unreadCount,
+      })) || [];
+
+  const taskNotifications =
+    tasks
+      ?.flatMap((task) => {
+        const externalComments =
+          task.comments?.filter((comment) => comment.userId !== currentUserId) || [];
+        const latestComment = externalComments.at(-1);
+
+        if (!latestComment) {
+          return [];
+        }
+
+        return [
+          {
+            id: `task-${task.id}-${latestComment.id}`,
+            kind: "task" as const,
+            label: task.title,
+            preview: latestComment.text,
+            timestamp: `${latestComment.id}`,
+            count: externalComments.length,
+          },
+        ];
+      })
+      .sort((a, b) => Number(b.timestamp) - Number(a.timestamp)) || [];
+
+  const notifications = [...conversationNotifications, ...taskNotifications];
+  const totalNotificationCount = notifications.reduce(
+    (sum, notification) => sum + notification.count,
+    0,
+  );
 
   const submitSearch = () => {
     const query = searchTerm.trim();
@@ -70,6 +136,81 @@ const Navbar = () => {
 
       {/* Icons */}
       <div className="flex items-center gap-1">
+        <div className="relative">
+          <button
+            type="button"
+            className="relative rounded-full p-2 transition hover:bg-white/80 dark:hover:bg-dark-tertiary"
+            onClick={() => setIsNotificationsOpen((prev) => !prev)}
+          >
+            <Bell className="h-5 w-5 cursor-pointer text-slate-900 dark:text-white" />
+            {totalNotificationCount > 0 ? (
+              <span className="absolute right-1 top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[10px] font-semibold text-white">
+                {totalNotificationCount}
+              </span>
+            ) : null}
+          </button>
+          {isNotificationsOpen ? (
+            <div className="absolute right-0 top-12 z-40 w-[320px] rounded-3xl border border-sand-100 bg-white/95 p-4 shadow-2xl backdrop-blur dark:border-stroke-dark dark:bg-dark-secondary/95">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-600 dark:text-teal-300">
+                    Notifications
+                  </p>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Workspace Activity
+                  </h3>
+                </div>
+                <span className="rounded-full bg-sand-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-dark-tertiary dark:text-slate-200">
+                  {totalNotificationCount}
+                </span>
+              </div>
+              <div className="max-h-[380px] space-y-2 overflow-y-auto pr-1">
+                {notifications.length ? (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className="rounded-2xl border border-sand-100 bg-white/80 p-4 dark:border-stroke-dark dark:bg-dark-tertiary/70"
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-primary/10 text-blue-primary">
+                            {notification.kind === "conversation" ? (
+                              <Bell className="h-4 w-4" />
+                            ) : (
+                              <MessageSquareMore className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                              {notification.label}
+                            </p>
+                            <p className="truncate text-xs text-slate-500 dark:text-slate-300">
+                              {notification.preview}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-teal-600 px-2 py-1 text-[10px] font-semibold text-white">
+                          {notification.count}
+                        </span>
+                      </div>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                        {notification.kind === "conversation"
+                          ? formatDistanceToNow(new Date(notification.timestamp), {
+                              addSuffix: true,
+                            })
+                          : "Task discussion activity"}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-sand-100 px-4 py-6 text-center text-sm text-slate-500 dark:border-stroke-dark dark:text-slate-300">
+                    No unread chat or task discussion activity right now.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
         <button
           onClick={() => dispatch(setIsDarkMode(!isDarkMode))}
           className="rounded-full p-2 transition hover:bg-white/80 dark:hover:bg-dark-tertiary"
