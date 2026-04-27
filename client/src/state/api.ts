@@ -77,6 +77,42 @@ export interface Team {
   projectManagerUsername?: string;
 }
 
+export type ConversationType = "DIRECT" | "TEAM";
+
+export interface ConversationParticipant {
+  id: number;
+  joinedAt: string;
+  lastReadAt?: string | null;
+  user: User;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: number;
+  senderUserId: number;
+  body: string;
+  createdAt: string;
+  sender: User;
+}
+
+export interface ConversationSummary {
+  id: number;
+  type: ConversationType;
+  title?: string | null;
+  team?: Pick<Team, "id" | "teamName"> | null;
+  participants: ConversationParticipant[];
+  lastMessage?: {
+    id: number;
+    body: string;
+    createdAt: string;
+    sender: User;
+  } | null;
+  unreadCount: number;
+  lastReadAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export interface AuthUserState {
   user: {
     username: string;
@@ -160,7 +196,7 @@ export const api = createApi({
     },
   }),
   reducerPath: "api",
-  tagTypes: ["Projects", "Tasks", "Users", "Teams"],
+  tagTypes: ["Projects", "Tasks", "Users", "Teams", "Conversations", "Messages"],
   endpoints: (build) => ({
     getAuthUser: build.query<AuthUserState, void>({
       queryFn: async (_, _queryApi, _extraoptions, fetchWithBQ) => {
@@ -337,12 +373,55 @@ export const api = createApi({
       }),
       invalidatesTags: ["Tasks"],
     }),
-    updateTaskStatus: build.mutation<Task, { taskId: number; status: string }>({
+    updateTaskStatus: build.mutation<
+      Task,
+      { taskId: number; status: string; projectId?: number }
+    >({
       query: ({ taskId, status }) => ({
         url: `tasks/${taskId}/status`,
         method: "PATCH",
         body: { status },
       }),
+      async onQueryStarted(
+        { projectId, status, taskId },
+        { dispatch, queryFulfilled },
+      ) {
+        const patches = [];
+
+        if (projectId !== undefined) {
+          patches.push(
+            dispatch(
+              api.util.updateQueryData(
+                "getTasks",
+                { projectId },
+                (draft) => {
+                  const task = draft.find((item) => item.id === taskId);
+                  if (task) {
+                    task.status = status as Status;
+                  }
+                },
+              ),
+            ),
+          );
+        }
+
+        patches.push(
+          dispatch(
+            api.util.updateQueryData("getTasks", undefined, (draft) => {
+              const task = draft.find((item) => item.id === taskId);
+              if (task) {
+                task.status = status as Status;
+              }
+            }),
+          ),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patches.forEach((patch) => patch.undo());
+        }
+      },
       invalidatesTags: (result, error, { taskId }) => [
         { type: "Tasks", id: taskId },
       ],
@@ -354,6 +433,58 @@ export const api = createApi({
     getTeams: build.query<Team[], void>({
       query: () => "teams",
       providesTags: ["Teams"],
+    }),
+    getConversations: build.query<ConversationSummary[], void>({
+      query: () => "conversations",
+      providesTags: ["Conversations"],
+    }),
+    createDirectConversation: build.mutation<
+      ConversationSummary,
+      { participantUserId: number }
+    >({
+      query: (body) => ({
+        url: "conversations/direct",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Conversations"],
+    }),
+    createTeamConversation: build.mutation<ConversationSummary, void>({
+      query: () => ({
+        url: "conversations/team",
+        method: "POST",
+      }),
+      invalidatesTags: ["Conversations"],
+    }),
+    getConversationMessages: build.query<ChatMessage[], number>({
+      query: (conversationId) => `conversations/${conversationId}/messages`,
+      providesTags: (result, error, conversationId) => [
+        { type: "Messages", id: conversationId },
+      ],
+    }),
+    createMessage: build.mutation<
+      ChatMessage,
+      { conversationId: number; body: string }
+    >({
+      query: ({ conversationId, body }) => ({
+        url: `conversations/${conversationId}/messages`,
+        method: "POST",
+        body: { body },
+      }),
+      invalidatesTags: (result, error, { conversationId }) => [
+        "Conversations",
+        { type: "Messages", id: conversationId },
+      ],
+    }),
+    markConversationRead: build.mutation<
+      { message: string },
+      { conversationId: number }
+    >({
+      query: ({ conversationId }) => ({
+        url: `conversations/${conversationId}/read`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Conversations"],
     }),
     search: build.query<SearchResults, string>({
       query: (query) => `search?query=${query}`,
@@ -375,4 +506,10 @@ export const {
   useGetTeamsQuery,
   useGetTasksByUserQuery,
   useGetAuthUserQuery,
+  useGetConversationsQuery,
+  useCreateDirectConversationMutation,
+  useCreateTeamConversationMutation,
+  useGetConversationMessagesQuery,
+  useCreateMessageMutation,
+  useMarkConversationReadMutation,
 } = api;

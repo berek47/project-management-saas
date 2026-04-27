@@ -15,6 +15,11 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum ConversationType {
+  DIRECT
+  TEAM
+}
+
 model User {
   userId            Int     @id @default(autoincrement())
   authProviderId    String  @unique
@@ -30,6 +35,9 @@ model User {
   comments        Comment[]
   team            Team?            @relation(fields: [teamId], references: [id])
   createdProjects Project[]        @relation("ProjectCreator")
+  createdConversations Conversation[] @relation("ConversationCreator")
+  conversationParticipants ConversationParticipant[]
+  sentMessages    Message[]        @relation("MessageSender")
 }
 
 model Team {
@@ -39,6 +47,7 @@ model Team {
   projectManagerUserId Int?
   projectTeams         ProjectTeam[]
   user                 User[]
+  conversations        Conversation[]
 }
 
 model Project {
@@ -111,4 +120,50 @@ model Comment {
 
   task Task @relation(fields: [taskId], references: [id])
   user User @relation(fields: [userId], references: [userId])
+}
+
+model Conversation {
+  id              Int                  @id @default(autoincrement())
+  type            ConversationType
+  title           String?
+  teamId          Int?
+  createdByUserId Int?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  team         Team?                     @relation(fields: [teamId], references: [id])
+  createdBy    User?                     @relation("ConversationCreator", fields: [createdByUserId], references: [userId])
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([teamId])
+  @@index([type])
+}
+
+model ConversationParticipant {
+  id             Int       @id @default(autoincrement())
+  conversationId Int
+  userId         Int
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             Int       @id @default(autoincrement())
+  conversationId Int
+  senderUserId   Int
+  body           String
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderUserId], references: [userId], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderUserId])
 }
