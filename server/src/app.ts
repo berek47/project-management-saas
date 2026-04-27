@@ -16,6 +16,7 @@ import exportRoutes from "./routes/exportRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
 import commentRoutes from "./routes/commentRoutes";
+import pinnedTaskRoutes from "./routes/pinnedTaskRoutes";
 
 export const app = express();
 
@@ -57,6 +58,7 @@ app.use("/export", exportRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/comments", commentRoutes);
+app.use("/pinned", pinnedTaskRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });
