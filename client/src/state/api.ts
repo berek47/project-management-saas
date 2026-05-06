@@ -85,6 +85,47 @@ export interface Team {
   projectManagerUsername?: string;
 }
 
+export interface Notification {
+  id: number;
+  userId: number;
+  type: string;
+  message: string;
+  isRead: boolean;
+  taskId?: number | null;
+  projectId?: number | null;
+  createdAt: string;
+}
+
+export interface ActivityLogEntry {
+  id: number;
+  userId: number;
+  taskId?: number | null;
+  projectId?: number | null;
+  action: string;
+  details?: string | null;
+  createdAt: string;
+  user: Pick<User, "userId" | "username" | "profilePictureUrl">;
+  task?: { id: number; title: string } | null;
+  project?: { id: number; name: string } | null;
+}
+
+export interface ProjectAnalytics {
+  totalTasks: number;
+  byStatus: Record<string, number>;
+  byPriority: Record<string, number>;
+  totalPoints: number;
+  completedPoints: number;
+  completionRate: number;
+  overdueTasks: number;
+  tasksByAssignee: { username: string; taskCount: number }[];
+}
+
+export interface WorkspaceAnalytics {
+  totalTasks: number;
+  completedThisWeek: number;
+  overdueCount: number;
+}
+
 export type ConversationType = "DIRECT" | "TEAM";
 
 export interface ConversationParticipant {
@@ -852,6 +893,66 @@ export const api = createApi({
     search: build.query<SearchResults, string>({
       query: (query) => `search?query=${query}`,
     }),
+    updateTask: build.mutation<
+      Task,
+      { taskId: number; body: Partial<Pick<Task, "title" | "description" | "priority" | "tags" | "points" | "assignedUserId" | "dueDate">> }
+    >({
+      query: ({ taskId, body }) => ({
+        url: `tasks/${taskId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
+    deleteTask: build.mutation<void, number>({
+      query: (taskId) => ({
+        url: `tasks/${taskId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Tasks"],
+    }),
+    getOverdueTasks: build.query<Task[], void>({
+      query: () => "tasks/overdue",
+      providesTags: ["Tasks"],
+    }),
+    getNotifications: build.query<Notification[], void>({
+      query: () => "notifications",
+      providesTags: ["Notifications"],
+    }),
+    getUnreadNotificationCount: build.query<{ count: number }, void>({
+      query: () => "notifications/unread-count",
+      providesTags: ["Notifications"],
+    }),
+    markNotificationRead: build.mutation<Notification, number>({
+      query: (id) => ({
+        url: `notifications/${id}/read`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Notifications"],
+    }),
+    markAllNotificationsRead: build.mutation<{ message: string }, void>({
+      query: () => ({
+        url: "notifications/read-all",
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Notifications"],
+    }),
+    getProjectActivity: build.query<ActivityLogEntry[], number>({
+      query: (projectId) => `activity/project/${projectId}`,
+      providesTags: ["Tasks"],
+    }),
+    getTaskActivity: build.query<ActivityLogEntry[], number>({
+      query: (taskId) => `activity/task/${taskId}`,
+      providesTags: ["Tasks"],
+    }),
+    getProjectAnalytics: build.query<ProjectAnalytics, number>({
+      query: (projectId) => `analytics/projects/${projectId}`,
+      providesTags: ["Tasks"],
+    }),
+    getWorkspaceAnalytics: build.query<WorkspaceAnalytics, void>({
+      query: () => "analytics/workspace",
+      providesTags: ["Tasks"],
+    }),
   }),
 });
 
@@ -878,4 +979,15 @@ export const {
   useUpdateMessageMutation,
   useDeleteMessageMutation,
   useMarkConversationReadMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+  useGetOverdueTasksQuery,
+  useGetNotificationsQuery,
+  useGetUnreadNotificationCountQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useGetProjectActivityQuery,
+  useGetTaskActivityQuery,
+  useGetProjectAnalyticsQuery,
+  useGetWorkspaceAnalyticsQuery,
 } = api;
