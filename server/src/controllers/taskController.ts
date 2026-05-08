@@ -38,6 +38,15 @@ export const getTasks = async (
 
     const limit = requireNumber(req.query.limit, "limit", { optional: true });
     const offset = requireNumber(req.query.offset, "offset", { optional: true });
+    const sortBy = requireString(req.query.sortBy, "sortBy", { optional: true });
+    const sortOrder = requireString(req.query.sortOrder, "sortOrder", { optional: true });
+
+    const allowedSortFields = ["id", "dueDate", "priority", "title", "createdAt"] as const;
+    type SortField = typeof allowedSortFields[number];
+    const sortField: SortField = allowedSortFields.includes(sortBy as SortField)
+      ? (sortBy as SortField)
+      : "id";
+    const order = sortOrder === "desc" ? "desc" : "asc";
 
     const where = projectId
       ? { projectId }
@@ -62,7 +71,7 @@ export const getTasks = async (
           },
           attachments: true,
         },
-        orderBy: { id: "asc" },
+        orderBy: { [sortField]: order },
         ...(limit !== undefined && { take: limit }),
         ...(offset !== undefined && { skip: offset }),
       }),
