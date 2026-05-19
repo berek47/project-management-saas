@@ -17,5 +17,20 @@ services:
       timeout: 5s
       retries: 10
 
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      DATABASE_URL: postgresql://bereket:bereket123@postgres:5432/project_management_saas
+      DIRECT_URL: postgresql://bereket:bereket123@postgres:5432/project_management_saas
+      CLIENT_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   project_management_saas_postgres:
