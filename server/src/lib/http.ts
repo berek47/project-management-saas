@@ -53,7 +53,10 @@ export function requireNumber(
 
   const parsedValue = Number(value);
   if (!Number.isFinite(parsedValue)) {
-    throw new HttpError(400, `${fieldName} must be a valid number`);
+    throw new HttpError(
+      400,
+      `${fieldName} must be a valid number (received: "${String(value)}")`,
+    );
   }
 
   return parsedValue;
@@ -74,12 +77,15 @@ export function requireString(
     if (options?.optional && (value === undefined || value === null)) {
       return undefined;
     }
-    throw new HttpError(400, `${fieldName} must be a string`);
+    throw new HttpError(
+      400,
+      `${fieldName} must be a text value (received type: ${typeof value})`,
+    );
   }
 
   const trimmedValue = value.trim();
   if (!options?.optional && !trimmedValue) {
-    throw new HttpError(400, `${fieldName} is required`);
+    throw new HttpError(400, `${fieldName} is required and cannot be blank`);
   }
 
   return trimmedValue || undefined;
